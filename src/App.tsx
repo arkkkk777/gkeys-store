@@ -28,6 +28,8 @@ import BlogPage from './pages/BlogPage';
 // @ts-ignore
 import ArticlePage from './pages/ArticlePage';
 // @ts-ignore
+import MediaPage from './pages/MediaPage';
+// @ts-ignore
 import PrivacyPage from './pages/PrivacyPage';
 // @ts-ignore
 import TermsPage from './pages/TermsPage';
@@ -135,6 +137,14 @@ function AnimatedRoutes() {
           element={
             <PageTransition>
               <ArticlePage />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/media"
+          element={
+            <PageTransition>
+              <MediaPage />
             </PageTransition>
           }
         />

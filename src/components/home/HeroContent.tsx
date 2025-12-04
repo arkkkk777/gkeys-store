@@ -59,17 +59,18 @@ export const HeroContent: React.FC<HeroContentProps> = ({
       exit="exit"
       style={{
         position: 'relative',
-        height: '500px',
+        minHeight: '500px',
+        height: 'auto',
         backgroundImage: `linear-gradient(to right, rgba(13,13,13,0.9), rgba(13,13,13,0.3)), url(${game.image})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         display: 'flex',
         alignItems: 'center',
-        padding: '0 48px',
+        padding: '48px',
       }}
       className="hero-section"
     >
-      <div style={{ maxWidth: '500px', zIndex: 10 }}>
+      <div style={{ maxWidth: '500px', zIndex: 10, width: '100%' }}>
         {game.discount && (
           <motion.span
             initial={{ opacity: 0, scale: 0.8 }}
@@ -100,6 +101,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
             fontWeight: '700',
             marginBottom: '16px',
             lineHeight: '1.1',
+            wordWrap: 'break-word',
           }}
           className="hero-title"
         >
@@ -167,6 +169,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
             display: 'flex',
             gap: '12px',
             flexWrap: 'wrap',
+            width: '100%',
           }}
           className="hero-buttons"
         >

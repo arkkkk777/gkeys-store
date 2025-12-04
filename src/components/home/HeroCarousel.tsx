@@ -173,6 +173,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
               transition: 'all 0.3s ease',
               scrollSnapAlign: 'start',
             }}
+            className="hero-carousel-item"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
           >

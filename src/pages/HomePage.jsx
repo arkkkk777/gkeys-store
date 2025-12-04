@@ -33,17 +33,58 @@ const responsiveCSS = `
     .desktop-search { display: none !important; }
     .desktop-login { display: none !important; }
     .mobile-menu-btn { display: flex !important; }
-    .hero-section { height: 400px !important; padding: 0 24px !important; }
-    .hero-title { font-size: 32px !important; }
-    .hero-price { font-size: 24px !important; }
-    .game-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
+    .hero-section { height: 400px !important; padding: 0 16px !important; }
+    .hero-content-wrapper { margin-top: 80px !important; }
+    .hero-title { font-size: 28px !important; line-height: 1.2 !important; }
+    .hero-price { font-size: 20px !important; }
+    .hero-carousel-container { padding: 12px 16px !important; }
+    .hero-carousel-item { width: 60px !important; height: 60px !important; }
+    .game-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+    .section-title { font-size: 20px !important; }
+    .container { padding: 0 16px !important; }
   }
   @media (max-width: 480px) {
-    .hero-section { height: 350px !important; }
-    .hero-title { font-size: 28px !important; }
-    .game-grid { grid-template-columns: repeat(2, 1fr) !important; }
-    .hero-buttons { flex-direction: column !important; }
-    .category-tabs { overflow-x: auto !important; flex-wrap: nowrap !important; padding-bottom: 8px !important; }
+    .hero-section { height: 350px !important; padding: 0 12px !important; }
+    .hero-content-wrapper { margin-top: 70px !important; }
+    .hero-title { font-size: 24px !important; margin-bottom: 12px !important; }
+    .hero-price { font-size: 18px !important; }
+    .hero-buttons { flex-direction: column !important; width: 100% !important; gap: 8px !important; }
+    .hero-buttons button { width: 100% !important; }
+    .game-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+    .category-tabs { 
+      overflow-x: auto !important; 
+      flex-wrap: nowrap !important; 
+      padding-bottom: 8px !important;
+      -webkit-overflow-scrolling: touch !important;
+      scrollbar-width: thin !important;
+      margin-left: -16px !important;
+      margin-right: -16px !important;
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
+    .category-tabs::-webkit-scrollbar { height: 4px !important; }
+    .category-tabs button { padding: 6px 12px !important; font-size: 13px !important; white-space: nowrap !important; }
+    .section-title { font-size: 18px !important; }
+    .section { margin-bottom: 32px !important; }
+    .section-header { margin-bottom: 16px !important; }
+    .promo-section { padding: 20px !important; margin-bottom: 32px !important; }
+    .promo-title { font-size: 18px !important; }
+    .promo-subtitle { font-size: 13px !important; }
+    .current-price { font-size: 14px !important; }
+    .original-price { font-size: 12px !important; }
+  }
+  @media (max-width: 374px) {
+    .hero-section { height: 300px !important; }
+    .hero-title { font-size: 20px !important; }
+    .hero-price { font-size: 16px !important; }
+    .game-grid { gap: 8px !important; }
+    .container { padding: 0 12px !important; }
+  }
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .game-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 20px !important; }
+  }
+  @media (min-width: 1025px) {
+    .game-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important; gap: 24px !important; }
   }
 `;
 
@@ -145,6 +186,9 @@ const styles = {
     gap: '8px',
     marginBottom: '24px',
     flexWrap: 'wrap',
+    overflowX: 'auto',
+    WebkitOverflowScrolling: 'touch',
+    scrollbarWidth: 'thin',
   },
   categoryTab: (isActive) => ({
     padding: '8px 16px',
@@ -154,6 +198,8 @@ const styles = {
     color: isActive ? theme.colors.text : theme.colors.textSecondary,
     fontSize: '14px',
     cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   }),
   gameGrid: {
     display: 'grid',
@@ -389,7 +435,7 @@ export default function HomePage() {
       }
     };
     loadHeroGames();
-  }, []);
+  }, [selectedGame]);
 
   // Load best sellers
   useEffect(() => {
@@ -493,9 +539,9 @@ export default function HomePage() {
             left: 0, 
             right: 0, 
             zIndex: 1,
-            padding: '24px 48px',
+            padding: '16px 24px',
             backgroundColor: 'rgba(13, 13, 13, 0.8)',
-          }}>
+          }} className="hero-carousel-container">
             <HeroCarousel
               games={heroGames}
               selectedGame={selectedGame}
@@ -504,7 +550,7 @@ export default function HomePage() {
               autoPlayInterval={5000}
             />
           </div>
-          <div style={{ marginTop: '120px' }}>
+          <div style={{ marginTop: '100px' }} className="hero-content-wrapper">
             <HeroContent
               game={selectedGame}
               onBuyClick={handleBuyClick}
@@ -525,6 +571,7 @@ export default function HomePage() {
               {categories.map((cat) => (
                 <button
                   key={cat}
+                  type="button"
                   style={styles.categoryTab(activeCategory === cat)}
                   onClick={() => setActiveCategory(cat)}
                 >
@@ -565,7 +612,7 @@ export default function HomePage() {
               )}
             </div>
             <Link to="/catalog">
-              <button style={styles.checkAllButton}>Check all</button>
+              <button type="button" style={styles.checkAllButton}>Check all</button>
             </Link>
           </div>
 
