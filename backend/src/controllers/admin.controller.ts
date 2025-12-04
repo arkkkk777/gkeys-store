@@ -263,7 +263,7 @@ export const createBlogPostController = async (
   next: NextFunction
 ) => {
   try {
-    const result = await createBlogPost(req.body, req.user!.id);
+    const result = await createBlogPost(req.body, req.user!.email);
 
     res.status(201).json({
       success: true,

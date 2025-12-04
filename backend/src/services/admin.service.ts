@@ -408,6 +408,18 @@ export const getAllGames = async (page = 1, pageSize = 20) => {
         _count: {
           select: { orderItems: true },
         },
+        platforms: {
+          include: {
+            platform: true,
+          },
+          take: 1,
+        },
+        genres: {
+          include: {
+            genre: true,
+          },
+          take: 1,
+        },
       },
     }),
     prisma.game.count(),
@@ -420,11 +432,11 @@ export const getAllGames = async (page = 1, pageSize = 20) => {
       slug: g.slug,
       price: Number(g.price),
       originalPrice: g.originalPrice ? Number(g.originalPrice) : null,
-      platform: g.platform,
-      genre: g.genre,
+      platform: g.platforms.length > 0 ? g.platforms[0].platform.name : '',
+      genre: g.genres.length > 0 ? g.genres[0].genre.name : '',
       inStock: g.inStock,
       isPreorder: g.isPreorder,
-      imageUrl: g.imageUrl,
+      imageUrl: g.image,
       salesCount: g._count.orderItems,
       createdAt: g.createdAt.toISOString(),
     })),
@@ -436,6 +448,50 @@ export const getAllGames = async (page = 1, pageSize = 20) => {
 };
 
 export const createGame = async (data: GameCreateInput) => {
+  // Find or create platform
+  let platform = await prisma.platform.findUnique({
+    where: { slug: data.platform.toLowerCase().replace(/\s+/g, '-') },
+  });
+  if (!platform) {
+    platform = await prisma.platform.create({
+      data: {
+        name: data.platform,
+        slug: data.platform.toLowerCase().replace(/\s+/g, '-'),
+      },
+    });
+  }
+
+  // Find or create genre
+  let genre = await prisma.genre.findUnique({
+    where: { slug: data.genre.toLowerCase().replace(/\s+/g, '-') },
+  });
+  if (!genre) {
+    genre = await prisma.genre.create({
+      data: {
+        name: data.genre,
+        slug: data.genre.toLowerCase().replace(/\s+/g, '-'),
+      },
+    });
+  }
+
+  // Create or find tags
+  const tagConnections = await Promise.all(
+    data.tags.map(async (tagName) => {
+      let tag = await prisma.tag.findUnique({
+        where: { slug: tagName.toLowerCase().replace(/\s+/g, '-') },
+      });
+      if (!tag) {
+        tag = await prisma.tag.create({
+          data: {
+            name: tagName,
+            slug: tagName.toLowerCase().replace(/\s+/g, '-'),
+          },
+        });
+      }
+      return { tagId: tag.id };
+    })
+  );
+
   const game = await prisma.game.create({
     data: {
       title: data.title,
@@ -443,15 +499,24 @@ export const createGame = async (data: GameCreateInput) => {
       description: data.description,
       price: data.price,
       originalPrice: data.originalPrice,
-      imageUrl: data.imageUrl,
-      platform: data.platform,
-      genre: data.genre,
-      tags: data.tags,
+      image: data.imageUrl,
       publisher: data.publisher,
-      developer: data.developer,
-      releaseDate: data.releaseDate ? new Date(data.releaseDate) : null,
+      releaseDate: data.releaseDate ? new Date(data.releaseDate) : new Date(),
       isPreorder: data.isPreorder || false,
       inStock: data.inStock !== false,
+      platforms: {
+        create: {
+          platformId: platform.id,
+        },
+      },
+      genres: {
+        create: {
+          genreId: genre.id,
+        },
+      },
+      tags: {
+        create: tagConnections,
+      },
     },
   });
 
@@ -472,16 +537,89 @@ export const updateGame = async (id: string, data: GameUpdateInput) => {
   if (data.description !== undefined) updateData.description = data.description;
   if (data.price !== undefined) updateData.price = data.price;
   if (data.originalPrice !== undefined) updateData.originalPrice = data.originalPrice;
-  if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
-  if (data.platform !== undefined) updateData.platform = data.platform;
-  if (data.genre !== undefined) updateData.genre = data.genre;
-  if (data.tags !== undefined) updateData.tags = data.tags;
+  if (data.imageUrl !== undefined) updateData.image = data.imageUrl;
   if (data.publisher !== undefined) updateData.publisher = data.publisher;
-  if (data.developer !== undefined) updateData.developer = data.developer;
-  if (data.releaseDate !== undefined) updateData.releaseDate = data.releaseDate ? new Date(data.releaseDate) : null;
+  if (data.releaseDate !== undefined) updateData.releaseDate = data.releaseDate ? new Date(data.releaseDate) : new Date();
   if (data.isPreorder !== undefined) updateData.isPreorder = data.isPreorder;
   if (data.inStock !== undefined) updateData.inStock = data.inStock;
 
+  // Handle platform update - do this before the main update
+  if (data.platform !== undefined) {
+    let platform = await prisma.platform.findUnique({
+      where: { slug: data.platform.toLowerCase().replace(/\s+/g, '-') },
+    });
+    if (!platform) {
+      platform = await prisma.platform.create({
+        data: {
+          name: data.platform,
+          slug: data.platform.toLowerCase().replace(/\s+/g, '-'),
+        },
+      });
+    }
+    // Delete old platform connections
+    await prisma.gamePlatform.deleteMany({ where: { gameId: id } });
+    // Create new connection
+    await prisma.gamePlatform.create({
+      data: {
+        gameId: id,
+        platformId: platform.id,
+      },
+    });
+  }
+
+  // Handle genre update - do this before the main update
+  if (data.genre !== undefined) {
+    let genre = await prisma.genre.findUnique({
+      where: { slug: data.genre.toLowerCase().replace(/\s+/g, '-') },
+    });
+    if (!genre) {
+      genre = await prisma.genre.create({
+        data: {
+          name: data.genre,
+          slug: data.genre.toLowerCase().replace(/\s+/g, '-'),
+        },
+      });
+    }
+    // Delete old genre connections
+    await prisma.gameGenre.deleteMany({ where: { gameId: id } });
+    // Create new connection
+    await prisma.gameGenre.create({
+      data: {
+        gameId: id,
+        genreId: genre.id,
+      },
+    });
+  }
+
+  // Handle tags update - do this before the main update
+  if (data.tags !== undefined) {
+    const tagConnections = await Promise.all(
+      data.tags.map(async (tagName) => {
+        let tag = await prisma.tag.findUnique({
+          where: { slug: tagName.toLowerCase().replace(/\s+/g, '-') },
+        });
+        if (!tag) {
+          tag = await prisma.tag.create({
+            data: {
+              name: tagName,
+              slug: tagName.toLowerCase().replace(/\s+/g, '-'),
+            },
+          });
+        }
+        return { gameId: id, tagId: tag.id };
+      })
+    );
+    // Delete old tag connections
+    await prisma.gameTag.deleteMany({ where: { gameId: id } });
+    // Create new connections
+    if (tagConnections.length > 0) {
+      await prisma.gameTag.createMany({
+        data: tagConnections,
+      });
+    }
+  }
+
+  // Update the game itself
   const game = await prisma.game.update({
     where: { id },
     data: updateData,
@@ -503,20 +641,15 @@ export const deleteGame = async (id: string) => {
   return { success: true };
 };
 
-// Blog Posts CRUD
+// Blog Posts CRUD (using Article model)
 export const getAllBlogPosts = async (page = 1, pageSize = 20) => {
   const [posts, total] = await Promise.all([
-    prisma.blogPost.findMany({
+    prisma.article.findMany({
       skip: (page - 1) * pageSize,
       take: pageSize,
       orderBy: { createdAt: 'desc' },
-      include: {
-        author: {
-          select: { email: true, nickname: true },
-        },
-      },
     }),
-    prisma.blogPost.count(),
+    prisma.article.count(),
   ]);
 
   return {
@@ -527,7 +660,7 @@ export const getAllBlogPosts = async (page = 1, pageSize = 20) => {
       excerpt: p.excerpt,
       category: p.category,
       published: p.published,
-      author: p.author?.nickname || p.author?.email || 'Unknown',
+      author: p.author || 'Unknown',
       createdAt: p.createdAt.toISOString(),
     })),
     total,
@@ -537,18 +670,19 @@ export const getAllBlogPosts = async (page = 1, pageSize = 20) => {
   };
 };
 
-export const createBlogPost = async (data: BlogPostCreateInput, authorId: string) => {
-  const post = await prisma.blogPost.create({
+export const createBlogPost = async (data: BlogPostCreateInput, authorEmail: string) => {
+  const post = await prisma.article.create({
     data: {
       title: data.title,
       slug: data.slug,
       content: data.content,
       excerpt: data.excerpt,
-      imageUrl: data.imageUrl,
+      coverImage: data.imageUrl || '',
       category: data.category,
       tags: data.tags,
       published: data.published || false,
-      authorId,
+      author: authorEmail,
+      publishedAt: data.published ? new Date() : null,
     },
   });
 
@@ -561,18 +695,23 @@ export const createBlogPost = async (data: BlogPostCreateInput, authorId: string
 };
 
 export const updateBlogPost = async (id: string, data: BlogPostUpdateInput) => {
-  const updateData: Prisma.BlogPostUpdateInput = {};
+  const updateData: Prisma.ArticleUpdateInput = {};
 
   if (data.title !== undefined) updateData.title = data.title;
   if (data.slug !== undefined) updateData.slug = data.slug;
   if (data.content !== undefined) updateData.content = data.content;
   if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
-  if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+  if (data.imageUrl !== undefined) updateData.coverImage = data.imageUrl;
   if (data.category !== undefined) updateData.category = data.category;
   if (data.tags !== undefined) updateData.tags = data.tags;
-  if (data.published !== undefined) updateData.published = data.published;
+  if (data.published !== undefined) {
+    updateData.published = data.published;
+    if (data.published && !updateData.publishedAt) {
+      updateData.publishedAt = new Date();
+    }
+  }
 
-  const post = await prisma.blogPost.update({
+  const post = await prisma.article.update({
     where: { id },
     data: updateData,
   });
@@ -586,7 +725,7 @@ export const updateBlogPost = async (id: string, data: BlogPostUpdateInput) => {
 };
 
 export const deleteBlogPost = async (id: string) => {
-  await prisma.blogPost.delete({
+  await prisma.article.delete({
     where: { id },
   });
   return { success: true };
@@ -596,7 +735,7 @@ export const deleteBlogPost = async (id: string) => {
 export const getAllOrders = async (page = 1, pageSize = 20, status?: string) => {
   const where: Prisma.OrderWhereInput = {};
   if (status) {
-    where.status = status as 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED';
+    where.status = status as 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
   }
 
   const [orders, total] = await Promise.all([
@@ -612,8 +751,14 @@ export const getAllOrders = async (page = 1, pageSize = 20, status?: string) => 
         items: {
           include: {
             game: {
-              select: { title: true },
+              select: { title: true, id: true },
             },
+          },
+        },
+        keys: {
+          select: {
+            key: true,
+            gameId: true,
           },
         },
       },
@@ -622,20 +767,27 @@ export const getAllOrders = async (page = 1, pageSize = 20, status?: string) => 
   ]);
 
   return {
-    orders: orders.map((o) => ({
-      id: o.id,
-      userEmail: o.user.email,
-      userNickname: o.user.nickname || 'Newbie Guy',
-      total: Number(o.total),
-      status: o.status,
-      itemsCount: o.items.length,
-      items: o.items.map((i) => ({
-        gameTitle: i.game.title,
-        price: Number(i.price),
-        key: i.key,
-      })),
-      createdAt: o.createdAt.toISOString(),
-    })),
+    orders: orders.map((o) => {
+      // Map keys to items by gameId
+      const keysByGameId = new Map(
+        o.keys.map((k) => [k.gameId, k.key])
+      );
+
+      return {
+        id: o.id,
+        userEmail: o.user.email,
+        userNickname: o.user.nickname || 'Newbie Guy',
+        total: Number(o.total),
+        status: o.status,
+        itemsCount: o.items.length,
+        items: o.items.map((i) => ({
+          gameTitle: i.game.title,
+          price: Number(i.price),
+          key: keysByGameId.get(i.gameId) || undefined,
+        })),
+        createdAt: o.createdAt.toISOString(),
+      };
+    }),
     total,
     page,
     pageSize,
@@ -646,7 +798,7 @@ export const getAllOrders = async (page = 1, pageSize = 20, status?: string) => 
 export const updateOrderStatus = async (id: string, status: string) => {
   const order = await prisma.order.update({
     where: { id },
-    data: { status: status as 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED' },
+    data: { status: status as 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' },
   });
 
   return {
