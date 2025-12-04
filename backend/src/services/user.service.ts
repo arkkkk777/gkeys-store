@@ -1,0 +1,206 @@
+import prisma from '../config/database';
+import { hashPassword } from '../utils/bcrypt';
+import {
+  UserProfileResponse,
+  UpdateProfileRequest,
+  BalanceResponse,
+  TransactionResponse,
+  WishlistResponse,
+} from '../types/user';
+import { AppError } from '../middleware/errorHandler';
+
+export const getUserProfile = async (userId: string): Promise<UserProfileResponse> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      orders: {
+        where: { status: 'COMPLETED' },
+        include: {
+          items: true,
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    const error: AppError = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // Calculate stats
+  const gamesPurchased = user.orders.reduce(
+    (sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
+    0
+  );
+
+  const totalSaved = user.orders.reduce(
+    (sum, order) => sum + Number(order.discount),
+    0
+  );
+
+  const daysSinceRegistration = Math.floor(
+    (Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  // Count empty fields
+  const emptyFieldsCount = [
+    !user.firstName,
+    !user.lastName,
+    !user.avatar,
+  ].filter(Boolean).length;
+
+  return {
+    id: user.id,
+    email: user.email,
+    nickname: user.nickname || 'Newbie Guy',
+    firstName: user.firstName || undefined,
+    lastName: user.lastName || undefined,
+    avatar: user.avatar || undefined,
+    balance: Number(user.balance),
+    role: user.role,
+    emailVerified: user.emailVerified,
+    createdAt: user.createdAt.toISOString(),
+    stats: {
+      gamesPurchased,
+      totalSaved,
+      daysSinceRegistration,
+      emptyFieldsCount,
+    },
+  };
+};
+
+export const updateUserProfile = async (
+  userId: string,
+  data: UpdateProfileRequest
+): Promise<UserProfileResponse> => {
+  const updateData: any = {};
+
+  if (data.nickname !== undefined) {
+    updateData.nickname = data.nickname || 'Newbie Guy';
+  }
+  if (data.firstName !== undefined) {
+    updateData.firstName = data.firstName;
+  }
+  if (data.lastName !== undefined) {
+    updateData.lastName = data.lastName;
+  }
+  if (data.password) {
+    updateData.passwordHash = await hashPassword(data.password);
+  }
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: updateData,
+  });
+
+  return getUserProfile(userId);
+};
+
+export const getUserBalance = async (userId: string): Promise<BalanceResponse> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { balance: true },
+  });
+
+  if (!user) {
+    const error: AppError = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return {
+    balance: Number(user.balance),
+    currency: 'EUR',
+  };
+};
+
+export const getUserTransactions = async (userId: string): Promise<TransactionResponse[]> => {
+  const transactions = await prisma.transaction.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return transactions.map((t) => ({
+    id: t.id,
+    type: t.type,
+    amount: Number(t.amount),
+    currency: t.currency,
+    method: t.method || undefined,
+    status: t.status,
+    description: t.description || undefined,
+    transactionHash: t.transactionHash || undefined,
+    createdAt: t.createdAt.toISOString(),
+    orderId: t.orderId || undefined,
+  }));
+};
+
+export const getUserWishlist = async (userId: string): Promise<WishlistResponse[]> => {
+  const wishlist = await prisma.wishlist.findMany({
+    where: { userId },
+    include: {
+      game: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          image: true,
+          price: true,
+          inStock: true,
+        },
+      },
+    },
+    orderBy: { addedAt: 'desc' },
+  });
+
+  return wishlist.map((item) => ({
+    gameId: item.gameId,
+    game: {
+      id: item.game.id,
+      title: item.game.title,
+      slug: item.game.slug,
+      image: item.game.image,
+      price: Number(item.game.price),
+      inStock: item.game.inStock,
+    },
+    addedAt: item.addedAt.toISOString(),
+  }));
+};
+
+export const addToWishlist = async (userId: string, gameId: string): Promise<void> => {
+  // Check if game exists
+  const game = await prisma.game.findUnique({
+    where: { id: gameId },
+  });
+
+  if (!game) {
+    const error: AppError = new Error('Game not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // Add to wishlist (upsert to avoid duplicates)
+  await prisma.wishlist.upsert({
+    where: {
+      userId_gameId: {
+        userId,
+        gameId,
+      },
+    },
+    create: {
+      userId,
+      gameId,
+    },
+    update: {},
+  });
+};
+
+export const removeFromWishlist = async (userId: string, gameId: string): Promise<void> => {
+  await prisma.wishlist.deleteMany({
+    where: {
+      userId,
+      gameId,
+    },
+  });
+};
+

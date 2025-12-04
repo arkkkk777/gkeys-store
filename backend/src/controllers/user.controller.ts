@@ -1,0 +1,184 @@
+import { Response, NextFunction } from 'express';
+import { AuthRequest } from '../middleware/auth';
+import {
+  getUserProfile,
+  updateUserProfile,
+  getUserBalance,
+  getUserTransactions,
+  getUserWishlist,
+  addToWishlist,
+  removeFromWishlist,
+} from '../services/user.service';
+import { UpdateProfileRequest } from '../types/user';
+
+export const getProfileController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Unauthorized' },
+      });
+    }
+
+    const profile = await getUserProfile(req.user.userId);
+
+    res.status(200).json({
+      success: true,
+      data: profile,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateProfileController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Unauthorized' },
+      });
+    }
+
+    const data: UpdateProfileRequest = req.body;
+    const profile = await updateUserProfile(req.user.userId, data);
+
+    res.status(200).json({
+      success: true,
+      data: profile,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getBalanceController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Unauthorized' },
+      });
+    }
+
+    const balance = await getUserBalance(req.user.userId);
+
+    res.status(200).json({
+      success: true,
+      data: balance,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTransactionsController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Unauthorized' },
+      });
+    }
+
+    const transactions = await getUserTransactions(req.user.userId);
+
+    res.status(200).json({
+      success: true,
+      data: transactions,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getWishlistController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Unauthorized' },
+      });
+    }
+
+    const wishlist = await getUserWishlist(req.user.userId);
+
+    res.status(200).json({
+      success: true,
+      data: wishlist,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const addToWishlistController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Unauthorized' },
+      });
+    }
+
+    const { gameId } = req.params;
+    await addToWishlist(req.user.userId, gameId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Game added to wishlist',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const removeFromWishlistController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Unauthorized' },
+      });
+    }
+
+    const { gameId } = req.params;
+    await removeFromWishlist(req.user.userId, gameId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Game removed from wishlist',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

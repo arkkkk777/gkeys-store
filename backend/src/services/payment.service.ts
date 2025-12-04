@@ -1,0 +1,285 @@
+import prisma from '../config/database';
+import { BalanceTopUpRequest, PaymentIntent, PaymentWebhook, TerminalWebhook } from '../types/payment';
+import { AppError } from '../middleware/errorHandler';
+import { sendBalanceTopUpEmail } from './email.service';
+
+// Currency conversion rates (EUR to other currencies)
+const CURRENCY_RATES: Record<string, number> = {
+  EUR: 1.0,
+  PLN: 4.3,
+  USD: 1.1,
+  GBP: 0.85,
+};
+
+export const convertCurrency = (amount: number, from: string, to: string): number => {
+  if (from === to) return amount;
+  const fromRate = CURRENCY_RATES[from] || 1.0;
+  const toRate = CURRENCY_RATES[to] || 1.0;
+  return Number((amount * (toRate / fromRate)).toFixed(2));
+};
+
+export const createBalanceTopUpIntent = async (
+  _userId: string,
+  data: BalanceTopUpRequest
+): Promise<PaymentIntent> => {
+  const { amount, currency, paymentMethod, promoCode } = data;
+
+  // Validate amount
+  if (amount <= 0) {
+    const error: AppError = new Error('Amount must be greater than 0');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Apply promo code if provided
+  let discount = 0;
+  if (promoCode) {
+    const promo = await prisma.promoCode.findUnique({
+      where: { code: promoCode },
+    });
+
+    if (promo?.active && promo.usedCount < (promo.maxUses ?? Infinity)) {
+      const now = new Date();
+      if (now >= promo.validFrom && now <= promo.validUntil) {
+        discount = Number((amount * Number(promo.discount) / 100).toFixed(2));
+      }
+    }
+  }
+
+  const finalAmount = amount - discount;
+
+  // Convert currency if needed (EUR to gateway currency, e.g., PLN)
+  const gatewayCurrency = 'PLN'; // Example: gateway uses PLN
+  const gatewayAmount = convertCurrency(finalAmount, currency, gatewayCurrency);
+
+  // Create payment intent (in real implementation, this would call the payment gateway)
+  const intentId = `pi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // Store payment intent in database (or cache)
+  // For now, we'll return the intent directly
+
+  // Generate redirect URL (in real implementation, this would be from the gateway)
+  const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/redirect?intent=${intentId}`;
+
+  return {
+    id: intentId,
+    amount: gatewayAmount,
+    currency: gatewayCurrency,
+    paymentMethod,
+    redirectUrl,
+    status: 'pending',
+  };
+};
+
+export const processPaymentWebhook = async (data: PaymentWebhook): Promise<void> => {
+  const { transactionId, email, amount, currency, method, status } = data;
+
+  // Find or create user
+  let user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    // Create user if doesn't exist (shouldn't happen in normal flow, but handle it)
+    user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '', // User will need to set password later
+        nickname: 'Newbie Guy',
+        firstName: data.name,
+        lastName: data.surname,
+      },
+    });
+  }
+
+  // Only process if status is completed
+  if (status !== 'completed') {
+    return;
+  }
+
+  // Convert currency back to EUR
+  const eurAmount = convertCurrency(amount, currency, 'EUR');
+
+  // Update user balance
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      balance: {
+        increment: eurAmount,
+      },
+    },
+  });
+
+  // Create transaction
+  await prisma.transaction.create({
+    data: {
+      userId: user.id,
+      type: 'TOP_UP',
+      amount: eurAmount,
+      currency: 'EUR',
+      method,
+      status: 'COMPLETED',
+      description: `Balance top-up via ${method}`,
+      transactionHash: transactionId,
+      gatewayResponse: data as unknown as Record<string, unknown>,
+    },
+  });
+
+  // Send email
+  const updatedUser = await prisma.user.findUnique({
+    where: { id: user.id },
+  });
+
+  if (updatedUser) {
+    await sendBalanceTopUpEmail(email, {
+      amount: eurAmount,
+      currency: 'EUR',
+      balance: Number(updatedUser.balance),
+    });
+  }
+};
+
+export const processTerminalWebhook = async (data: TerminalWebhook): Promise<void> => {
+  const { transactionId, email, name, surname, amount, currency, status } = data;
+
+  // Only process completed transactions
+  if (status !== 'completed') {
+    return;
+  }
+
+  // Find or create user (without password - cannot login)
+  let user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '', // No password - user cannot login
+        nickname: 'Newbie Guy',
+        firstName: name,
+        lastName: surname,
+      },
+    });
+  }
+
+  // Convert currency to EUR
+  const eurAmount = convertCurrency(amount, currency, 'EUR');
+
+  // Top up balance
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      balance: {
+        increment: eurAmount,
+      },
+    },
+  });
+
+  // Create transaction
+  await prisma.transaction.create({
+    data: {
+      userId: user.id,
+      type: 'TOP_UP',
+      amount: eurAmount,
+      currency: 'EUR',
+      method: data.method,
+      status: 'COMPLETED',
+      description: `Terminal top-up`,
+      transactionHash: transactionId,
+      gatewayResponse: data as unknown as Record<string, unknown>,
+    },
+  });
+
+  // Generate fake purchases (85-100% of balance)
+  const balance = Number(user.balance);
+  const purchaseAmount = balance * (0.85 + Math.random() * 0.15); // 85-100%
+
+  // Get random games
+  const games = await prisma.game.findMany({
+    where: { inStock: true },
+    take: Math.floor(Math.random() * 5) + 1, // 1-5 games
+  });
+
+  if (games.length > 0) {
+    let remainingAmount = purchaseAmount;
+    const orderItems = [];
+
+    for (const game of games) {
+      if (remainingAmount <= 0) break;
+      const gamePrice = Number(game.price);
+      if (gamePrice <= remainingAmount) {
+        orderItems.push({
+          gameId: game.id,
+          quantity: 1,
+          price: gamePrice,
+          discount: 0,
+        });
+        remainingAmount -= gamePrice;
+      }
+    }
+
+    if (orderItems.length > 0) {
+      const subtotal = orderItems.reduce((sum, item) => sum + item.price, 0);
+      const total = subtotal;
+
+      // Create order
+      const order = await prisma.order.create({
+        data: {
+          userId: user.id,
+          status: 'COMPLETED',
+          subtotal,
+          discount: 0,
+          total,
+          paymentStatus: 'COMPLETED',
+          completedAt: new Date(),
+          items: {
+            create: orderItems,
+          },
+        },
+      });
+
+      // Deduct balance
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          balance: {
+            decrement: total,
+          },
+        },
+      });
+
+      // Create transaction
+      await prisma.transaction.create({
+        data: {
+          userId: user.id,
+          orderId: order.id,
+          type: 'PURCHASE',
+          amount: -total,
+          currency: 'EUR',
+          status: 'COMPLETED',
+          description: `Fake purchase order ${order.id}`,
+        },
+      });
+
+      // Generate fake keys
+      for (const item of orderItems) {
+        const game = games.find((gameItem) => gameItem.id === item.gameId);
+        if (game) {
+          const fakeKey = `FAKE-${Math.random().toString(36).substr(2, 9).toUpperCase()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+          await prisma.gameKey.create({
+            data: {
+              gameId: item.gameId,
+              key: fakeKey,
+              orderId: order.id,
+            },
+          });
+        }
+      }
+    }
+  }
+
+  // NO EMAIL SENT for terminal transactions
+};
+

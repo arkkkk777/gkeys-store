@@ -1,0 +1,285 @@
+/* Responsive Utilities for GKEYS Store */
+
+/* Breakpoints:
+   - xs: < 375px (very small phones)
+   - sm: 375px - 480px (small phones)
+   - md: 481px - 768px (tablets)
+   - lg: 769px - 1024px (small desktops)
+   - xl: 1025px - 1280px (desktops)
+   - xxl: > 1280px (large desktops)
+*/
+
+/* Very Small Screens (< 375px) */
+@media (max-width: 374px) {
+  .container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  h1 {
+    font-size: 24px !important;
+  }
+
+  h2 {
+    font-size: 20px !important;
+  }
+
+  button,
+  .btn {
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+  }
+}
+
+/* Small Phones (375px - 480px) */
+@media (max-width: 480px) {
+  /* Grid adjustments */
+  .game-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Hero section */
+  .hero-section {
+    height: 350px !important;
+    padding: 0 16px !important;
+  }
+
+  .hero-title {
+    font-size: 28px !important;
+  }
+
+  .hero-buttons {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .hero-buttons button {
+    width: 100% !important;
+  }
+
+  /* Category tabs */
+  .category-tabs {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    padding-bottom: 8px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .category-tabs::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  /* Cards */
+  .game-card {
+    max-width: 100% !important;
+  }
+
+  /* Spacing */
+  .section-spacing {
+    margin-bottom: 24px !important;
+  }
+
+  /* Text sizes */
+  .text-lg {
+    font-size: 16px !important;
+  }
+
+  .text-xl {
+    font-size: 18px !important;
+  }
+}
+
+/* Tablets (481px - 768px) */
+@media (max-width: 768px) {
+  /* Hide desktop elements */
+  .desktop-nav,
+  .desktop-search,
+  .desktop-login {
+    display: none !important;
+  }
+
+  /* Show mobile elements */
+  .mobile-menu-btn {
+    display: flex !important;
+  }
+
+  /* Grid adjustments */
+  .game-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  /* Hero section */
+  .hero-section {
+    height: 400px !important;
+    padding: 0 24px !important;
+  }
+
+  .hero-title {
+    font-size: 32px !important;
+  }
+
+  .hero-price {
+    font-size: 24px !important;
+  }
+
+  /* Profile layout */
+  .profile-layout {
+    flex-direction: column !important;
+  }
+
+  .profile-sidebar {
+    width: 100% !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    gap: 8px !important;
+    padding-bottom: 16px !important;
+  }
+
+  .sidebar-item {
+    white-space: nowrap !important;
+  }
+
+  /* Order cards */
+  .order-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .order-image {
+    width: 100% !important;
+    max-width: 200px !important;
+  }
+
+  .order-price {
+    margin-top: 16px !important;
+  }
+
+  /* Balance content */
+  .balance-content {
+    flex-direction: column !important;
+  }
+
+  .user-info {
+    margin-bottom: 24px !important;
+  }
+
+  /* Footer */
+  .footer-nav {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 16px !important;
+  }
+}
+
+/* Touch-friendly targets */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  a,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Increase tap target size for icons */
+  .icon-button {
+    padding: 12px !important;
+  }
+
+  /* Add visual feedback for touch */
+  button:active,
+  a:active,
+  [role="button"]:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+}
+
+/* Landscape phones */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hero-section {
+    height: 300px !important;
+  }
+
+  .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* Large tablets and small desktops (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .game-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+
+  .container {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+
+/* Desktop (1025px+) */
+@media (min-width: 1025px) {
+  .game-grid {
+    grid-template-columns: repeat(6, 1fr) !important;
+  }
+
+  /* Show hover effects only on desktop */
+  .hover-lift:hover {
+    transform: translateY(-4px);
+  }
+
+  .hover-scale:hover {
+    transform: scale(1.05);
+  }
+}
+
+/* High resolution displays */
+@media (min-resolution: 2dppx) {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Dark mode preference (already dark by default) */
+@media (prefers-color-scheme: light) {
+  /* Users who prefer light mode can be shown a toggle */
+  body::before {
+    content: '';
+    /* Could add a light mode toggle hint */
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print,
+  header,
+  footer,
+  .mobile-menu,
+  .auth-modal {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
