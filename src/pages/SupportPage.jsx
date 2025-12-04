@@ -185,27 +185,7 @@ export default function SupportPage() {
   return (
     <>
       <style>{responsiveCSS}</style>
-      <div style={styles.app}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '48px' }}>
-            <a href="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </a>
-            <nav style={styles.nav} className="desktop-nav">
-              <a href="/catalog" style={styles.navLink}><Icons.Grid /> Catalog</a>
-              <a href="/media" style={styles.navLink}><Icons.Media /> Media</a>
-            </nav>
-          </div>
-          <div style={styles.rightSection}>
-            <button style={styles.iconButton}><Icons.Heart filled={false} /></button>
-            <button style={styles.iconButton}><Icons.Cart /></button>
-            <button style={styles.searchButton} className="desktop-search"><Icons.Search /> Search</button>
-            <button style={styles.loginButton} className="desktop-login">Log in</button>
-          </div>
-        </header>
-
-        {/* Main Content */}
+      {/* Main Content */}
         <main style={styles.main}>
           <h1 style={styles.pageTitle}>Support Center</h1>
           <p style={styles.pageSubtitle}>Find answers to frequently asked questions or contact our support team</p>
@@ -283,29 +263,6 @@ export default function SupportPage() {
             </div>
           </div>
         </main>
-
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerTop}>
-            <a href="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </a>
-            <nav style={styles.footerNav}>
-              <a href="/catalog" style={styles.footerLink}>Catalog</a>
-              <a href="/new" style={styles.footerLink}>New</a>
-              <a href="/media" style={styles.footerLink}>Media</a>
-              <a href="/support" style={styles.footerLink}>Support</a>
-            </nav>
-            <div style={styles.footerSocial}>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Telegram /></a>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Instagram /></a>
-            </div>
-          </div>
-          <div style={styles.footerBottom}>
-            <p style={styles.copyright}>© 2025 GKEYS. All rights reserved.</p>
-          </div>
-        </footer>
-      </div>
     </>
   );
 }

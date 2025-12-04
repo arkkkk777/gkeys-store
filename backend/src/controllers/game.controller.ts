@@ -11,6 +11,10 @@ import {
   getRandomGames,
   getSimilarGames,
   searchGames,
+  getAllGenres,
+  getAllPlatforms,
+  getFilterOptions,
+  getCollections,
 } from '../services/game.service';
 import { GameFilters } from '../types/game';
 
@@ -268,6 +272,74 @@ export const searchGamesController = async (
     res.status(200).json({
       success: true,
       data: games,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAllGenresController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const genres = await getAllGenres();
+
+    res.status(200).json({
+      success: true,
+      data: genres,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAllPlatformsController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const platforms = await getAllPlatforms();
+
+    res.status(200).json({
+      success: true,
+      data: platforms,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getFilterOptionsController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const options = await getFilterOptions();
+
+    res.status(200).json({
+      success: true,
+      data: options,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getCollectionsController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const collections = await getCollections();
+
+    res.status(200).json({
+      success: true,
+      data: collections,
     });
   } catch (error) {
     next(error);

@@ -1,5 +1,7 @@
 // Auth Modal Component - GKEYS Gaming Store
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const theme = {
   colors: {
@@ -28,10 +30,14 @@ const Icons = {
   Check: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>,
 };
 
-export default function AuthModal({ isOpen: propIsOpen, onClose }) {
+export default function AuthModal({ isOpen: propIsOpen, onClose, initialMode = 'login' }) {
+  const navigate = useNavigate();
+  const { login, register } = useAuth();
+  
   const [isOpen, setIsOpen] = useState(propIsOpen !== undefined ? propIsOpen : true);
-  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot'
+  const [mode, setMode] = useState(initialMode); // 'login' | 'register' | 'forgot'
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -41,6 +47,7 @@ export default function AuthModal({ isOpen: propIsOpen, onClose }) {
     agreeMarketing: false,
   });
   const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -73,11 +80,33 @@ export default function AuthModal({ isOpen: propIsOpen, onClose }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      console.log('Form submitted:', formData);
-      // Handle form submission
+    if (!validateForm()) return;
+    
+    setIsSubmitting(true);
+    setErrors({});
+    
+    try {
+      if (mode === 'login') {
+        await login(formData.email, formData.password);
+        setSuccessMessage('Login successful!');
+        setTimeout(() => handleClose(), 500);
+      } else if (mode === 'register') {
+        await register(formData.email, formData.password, formData.nickname);
+        setSuccessMessage('Account created successfully!');
+        setTimeout(() => handleClose(), 500);
+      } else if (mode === 'forgot') {
+        // Simulate forgot password API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setSuccessMessage('Password reset link sent to your email!');
+      }
+    } catch (error) {
+      setErrors({
+        general: error.message || 'Something went wrong. Please try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -297,6 +326,18 @@ export default function AuthModal({ isOpen: propIsOpen, onClose }) {
       <h2 style={styles.title}>Welcome back</h2>
       <p style={styles.subtitle}>Sign in to continue your gaming journey</p>
       
+      {errors.general && (
+        <div style={{ background: `${theme.colors.error}15`, border: `1px solid ${theme.colors.error}30`, borderRadius: '10px', padding: '12px', marginBottom: '16px', color: theme.colors.error, fontSize: '14px' }}>
+          {errors.general}
+        </div>
+      )}
+      
+      {successMessage && (
+        <div style={{ background: `${theme.colors.primary}15`, border: `1px solid ${theme.colors.primary}30`, borderRadius: '10px', padding: '12px', marginBottom: '16px', color: theme.colors.primary, fontSize: '14px' }}>
+          {successMessage}
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} style={styles.form}>
         <div style={styles.inputGroup}>
           <label style={styles.label}>Email</label>
@@ -309,6 +350,7 @@ export default function AuthModal({ isOpen: propIsOpen, onClose }) {
               value={formData.email}
               onChange={handleChange}
               style={{ ...styles.input, ...(errors.email ? styles.inputError : {}) }}
+              disabled={isSubmitting}
             />
           </div>
           {errors.email && <p style={styles.errorText}>{errors.email}</p>}
@@ -325,6 +367,7 @@ export default function AuthModal({ isOpen: propIsOpen, onClose }) {
               value={formData.password}
               onChange={handleChange}
               style={{ ...styles.input, paddingRight: '44px', ...(errors.password ? styles.inputError : {}) }}
+              disabled={isSubmitting}
             />
             <button type="button" onClick={() => setShowPassword(!showPassword)} style={styles.passwordToggle}>
               {showPassword ? <Icons.EyeOff /> : <Icons.Eye />}
@@ -339,7 +382,9 @@ export default function AuthModal({ isOpen: propIsOpen, onClose }) {
           </button>
         </div>
 
-        <button type="submit" style={styles.submitBtn}>Sign In</button>
+        <button type="submit" style={{ ...styles.submitBtn, opacity: isSubmitting ? 0.7 : 1 }} disabled={isSubmitting}>
+          {isSubmitting ? 'Signing in...' : 'Sign In'}
+        </button>
       </form>
 
       <div style={styles.divider}>
@@ -365,6 +410,18 @@ export default function AuthModal({ isOpen: propIsOpen, onClose }) {
       <h2 style={styles.title}>Create account</h2>
       <p style={styles.subtitle}>Join GKEYS and start gaming today</p>
       
+      {errors.general && (
+        <div style={{ background: `${theme.colors.error}15`, border: `1px solid ${theme.colors.error}30`, borderRadius: '10px', padding: '12px', marginBottom: '16px', color: theme.colors.error, fontSize: '14px' }}>
+          {errors.general}
+        </div>
+      )}
+      
+      {successMessage && (
+        <div style={{ background: `${theme.colors.primary}15`, border: `1px solid ${theme.colors.primary}30`, borderRadius: '10px', padding: '12px', marginBottom: '16px', color: theme.colors.primary, fontSize: '14px' }}>
+          {successMessage}
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} style={styles.form}>
         <div style={styles.inputGroup}>
           <label style={styles.label}>Nickname</label>
@@ -377,6 +434,7 @@ export default function AuthModal({ isOpen: propIsOpen, onClose }) {
               value={formData.nickname}
               onChange={handleChange}
               style={{ ...styles.input, ...(errors.nickname ? styles.inputError : {}) }}
+              disabled={isSubmitting}
             />
           </div>
           {errors.nickname && <p style={styles.errorText}>{errors.nickname}</p>}
@@ -393,6 +451,7 @@ export default function AuthModal({ isOpen: propIsOpen, onClose }) {
               value={formData.email}
               onChange={handleChange}
               style={{ ...styles.input, ...(errors.email ? styles.inputError : {}) }}
+              disabled={isSubmitting}
             />
           </div>
           {errors.email && <p style={styles.errorText}>{errors.email}</p>}
@@ -409,6 +468,7 @@ export default function AuthModal({ isOpen: propIsOpen, onClose }) {
               value={formData.password}
               onChange={handleChange}
               style={{ ...styles.input, paddingRight: '44px', ...(errors.password ? styles.inputError : {}) }}
+              disabled={isSubmitting}
             />
             <button type="button" onClick={() => setShowPassword(!showPassword)} style={styles.passwordToggle}>
               {showPassword ? <Icons.EyeOff /> : <Icons.Eye />}
@@ -428,6 +488,7 @@ export default function AuthModal({ isOpen: propIsOpen, onClose }) {
               value={formData.confirmPassword}
               onChange={handleChange}
               style={{ ...styles.input, ...(errors.confirmPassword ? styles.inputError : {}) }}
+              disabled={isSubmitting}
             />
           </div>
           {errors.confirmPassword && <p style={styles.errorText}>{errors.confirmPassword}</p>}
@@ -460,7 +521,9 @@ export default function AuthModal({ isOpen: propIsOpen, onClose }) {
           </label>
         </div>
 
-        <button type="submit" style={styles.submitBtn}>Create Account</button>
+        <button type="submit" style={{ ...styles.submitBtn, opacity: isSubmitting ? 0.7 : 1 }} disabled={isSubmitting}>
+          {isSubmitting ? 'Creating account...' : 'Create Account'}
+        </button>
       </form>
 
       <div style={styles.divider}>

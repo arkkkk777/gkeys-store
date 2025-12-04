@@ -11,6 +11,10 @@ import {
   getRandomGamesController,
   getSimilarGamesController,
   searchGamesController,
+  getAllGenresController,
+  getAllPlatformsController,
+  getFilterOptionsController,
+  getCollectionsController,
 } from '../controllers/game.controller';
 
 const router = Router();
@@ -23,6 +27,10 @@ router.get('/preorders', getPreordersController);
 router.get('/new', getNewGamesController);
 router.get('/by-genre/:genre', getGamesByGenreController);
 router.get('/random', getRandomGamesController);
+router.get('/genres', getAllGenresController);
+router.get('/platforms', getAllPlatformsController);
+router.get('/filter-options', getFilterOptionsController);
+router.get('/collections', getCollectionsController);
 router.get('/:id/similar', getSimilarGamesController);
 router.get('/slug/:slug', getGameBySlugController);
 router.get('/:id', getGameByIdController);

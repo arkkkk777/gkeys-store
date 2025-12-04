@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const theme = {
   colors: {
@@ -115,11 +115,13 @@ const itemVariants = {
 export default function MobileMenu({
   isOpen,
   onClose,
-  onOpenAuth,
+  onOpenAuth: _onOpenAuth, // Kept for backwards compatibility but now navigates to /login
   cartCount = 0,
   wishlistCount = 0,
   isAuthenticated = false,
 }: MobileMenuProps) {
+  const navigate = useNavigate();
+  
   // Prevent body scroll when menu is open
   useEffect(() => {
     if (isOpen) {
@@ -163,7 +165,7 @@ export default function MobileMenu({
               bottom: 0,
               backgroundColor: 'rgba(0, 0, 0, 0.7)',
               backdropFilter: 'blur(4px)',
-              zIndex: 999,
+              zIndex: 1100,
             }}
           />
 
@@ -181,10 +183,11 @@ export default function MobileMenu({
               width: '280px',
               maxWidth: '80vw',
               backgroundColor: theme.colors.surface,
-              zIndex: 1000,
+              zIndex: 1101,
               display: 'flex',
               flexDirection: 'column',
               padding: '24px',
+              paddingBottom: '90px',
               overflowY: 'auto',
             }}
           >
@@ -279,7 +282,7 @@ export default function MobileMenu({
             </nav>
 
             {/* Auth Button */}
-            {!isAuthenticated && onOpenAuth && (
+            {!isAuthenticated && (
               <motion.button
                 custom={menuItems.length}
                 variants={itemVariants}
@@ -287,7 +290,7 @@ export default function MobileMenu({
                 animate="visible"
                 onClick={() => {
                   onClose();
-                  onOpenAuth();
+                  navigate('/login');
                 }}
                 style={{
                   width: '100%',
@@ -300,6 +303,7 @@ export default function MobileMenu({
                   fontWeight: '600',
                   cursor: 'pointer',
                   marginTop: '16px',
+                  marginBottom: '8px',
                 }}
               >
                 Log in

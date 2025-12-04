@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { getArticles, getArticleById, getArticleBySlug } from '../services/blog.service';
+import { getArticles, getArticleById, getArticleBySlug, getCategories } from '../services/blog.service';
 import { ArticleFilters } from '../types/blog';
 
 export const getArticlesController = async (
@@ -71,6 +71,23 @@ export const getArticleBySlugController = async (
     res.status(200).json({
       success: true,
       data: article,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getCategoriesController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const categories = await getCategories();
+
+    res.status(200).json({
+      success: true,
+      data: categories,
     });
   } catch (error) {
     next(error);

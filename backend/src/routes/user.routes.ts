@@ -2,6 +2,8 @@ import { Router } from 'express';
 import {
   getProfileController,
   updateProfileController,
+  changePasswordController,
+  getUserStatsController,
   getBalanceController,
   getTransactionsController,
   getWishlistController,
@@ -17,6 +19,8 @@ router.use(authenticate);
 
 router.get('/profile', getProfileController);
 router.put('/profile', updateProfileController);
+router.put('/password', changePasswordController);
+router.get('/stats', getUserStatsController);
 router.get('/balance', getBalanceController);
 router.get('/transactions', getTransactionsController);
 router.get('/wishlist', getWishlistController);

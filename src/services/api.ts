@@ -3,6 +3,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.gkeys.sto
 
 interface RequestConfig extends RequestInit {
   params?: Record<string, string>;
+  responseType?: 'json' | 'blob' | 'text';
 }
 
 // API Client class
@@ -79,6 +80,14 @@ class ApiClient {
         ...config?.headers,
       },
     });
+
+    // Handle blob responses
+    if (config?.responseType === 'blob') {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.blob() as Promise<T>;
+    }
 
     return this.handleResponse<T>(response);
   }

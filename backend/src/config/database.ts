@@ -1,21 +1,27 @@
 import { PrismaClient } from '@prisma/client';
+import { withAccelerate } from '@prisma/extension-accelerate';
 
-let prisma: PrismaClient;
+let prisma: ReturnType<typeof createPrismaClient>;
+
+function createPrismaClient() {
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  }).$extends(withAccelerate());
+}
 
 try {
-  prisma = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  });
+  prisma = createPrismaClient();
   
   // Test connection
   prisma.$connect().catch(() => {
     console.warn('⚠️  Database connection failed. Some features may not work.');
   });
+  
+  console.log('✅ Prisma Client with Accelerate initialized');
 } catch (error) {
   console.warn('⚠️  Failed to initialize Prisma Client:', error);
-  // @ts-ignore - Create a mock client for development
+  // @ts-expect-error - Create a mock client for development
   prisma = null;
 }
 
 export default prisma;
-

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import MobileMenu from './MobileMenu';
@@ -83,12 +83,20 @@ const Icons = {
 
 export default function Layout({ children }: LayoutProps) {
   const { isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Mock cart and wishlist counts (in production, get from context or API)
   const cartCount = 0;
   const wishlistCount = 0;
+  
+  const handleLoginClick = () => {
+    // Option 1: Navigate to login page
+    navigate('/login');
+    // Option 2: Show modal (uncomment below to use modal instead)
+    // setIsAuthModalOpen(true);
+  };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: theme.colors.background, display: 'flex', flexDirection: 'column' }}>
@@ -220,7 +228,7 @@ export default function Layout({ children }: LayoutProps) {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setIsAuthModalOpen(true)}
+              onClick={handleLoginClick}
               className="desktop-login"
               style={{
                 padding: '10px 24px',

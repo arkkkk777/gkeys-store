@@ -747,3 +747,156 @@ export const searchGames = async (query: string): Promise<GameResponse[]> => {
   return games.map(transformGame);
 };
 
+export const getAllGenres = async (): Promise<Array<{ name: string; slug: string }>> => {
+  const genres = await prisma.genre.findMany({
+    orderBy: {
+      name: 'asc',
+    },
+  });
+
+  return genres.map((genre) => ({
+    name: genre.name,
+    slug: genre.slug,
+  }));
+};
+
+export const getAllPlatforms = async (): Promise<Array<{ name: string; slug: string }>> => {
+  const platforms = await prisma.platform.findMany({
+    orderBy: {
+      name: 'asc',
+    },
+  });
+
+  return platforms.map((platform) => ({
+    name: platform.name,
+    slug: platform.slug,
+  }));
+};
+
+export const getFilterOptions = async () => {
+  const [genres, platforms] = await Promise.all([
+    getAllGenres(),
+    getAllPlatforms(),
+  ]);
+
+  // Get unique values from games
+  const games = await prisma.game.findMany({
+    select: {
+      activationService: true,
+      region: true,
+      publisher: true,
+      multiplayer: true,
+    },
+  });
+
+  const activationServices = [...new Set(games.map(g => g.activationService).filter(Boolean))].sort();
+  const regions = [...new Set(games.map(g => g.region).filter(Boolean))].sort();
+  const publishers = [...new Set(games.map(g => g.publisher).filter(Boolean))].sort();
+
+  return {
+    genres,
+    platforms,
+    activationServices,
+    regions,
+    publishers,
+    multiplayer: [true, false],
+  };
+};
+
+export const getCollections = async (): Promise<Array<{ id: string; title: string; type: 'genre' | 'publisher'; value: string; games: GameResponse[] }>> => {
+  const collections = [];
+  
+  // Get top 5 genres
+  const topGenres = await prisma.genre.findMany({
+    take: 5,
+    orderBy: {
+      name: 'asc',
+    },
+  });
+
+  // Get top 5 publishers
+  const games = await prisma.game.findMany({
+    select: {
+      publisher: true,
+    },
+    where: {
+      publisher: { not: null },
+      inStock: true,
+    },
+  });
+
+  const publisherCounts = games.reduce((acc, game) => {
+    if (game.publisher) {
+      acc[game.publisher] = (acc[game.publisher] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  const topPublishers = Object.entries(publisherCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name]) => name);
+
+  // Create genre collections
+  for (const genre of topGenres) {
+    const genreGames = await getGamesByGenre(genre.slug);
+    if (genreGames.length > 0) {
+      collections.push({
+        id: `genre-${genre.slug}`,
+        title: genre.name,
+        type: 'genre' as const,
+        value: genre.slug,
+        games: genreGames.slice(0, 10),
+      });
+    }
+  }
+
+  // Create publisher collections
+  for (const publisher of topPublishers) {
+    const publisherGames = await prisma.game.findMany({
+      where: {
+        publisher,
+        inStock: true,
+      },
+      take: 10,
+      orderBy: {
+        userRating: 'desc',
+      },
+      include: {
+        platforms: {
+          include: {
+            platform: true,
+          },
+        },
+        genres: {
+          include: {
+            genre: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    });
+
+    if (publisherGames.length > 0) {
+      collections.push({
+        id: `publisher-${publisher}`,
+        title: publisher,
+        type: 'publisher' as const,
+        value: publisher,
+        games: publisherGames.map(transformGame).slice(0, 10),
+      });
+    }
+  }
+
+  return collections.slice(0, 10);
+};
+

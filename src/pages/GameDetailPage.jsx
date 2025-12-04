@@ -1,7 +1,8 @@
 // Game Detail Page - GKEYS Gaming Store
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Icons } from '../components/UIKit';
+import { gamesApi } from '../services/gamesApi';
 
 const theme = {
   colors: {
@@ -16,36 +17,7 @@ const theme = {
   },
 };
 
-const gameData = {
-  title: 'Detroit: Become Human',
-  description: 'An engaging and emotionally rich story set in a world where androids coexist side by side with humans.',
-  fullDescription: `Detroit: Become Human is an award-winning interactive drama that puts you at the center of a gripping sci-fi story about choice, freedom, and what it truly means to be alive. In a near-future Detroit, androids built to serve humans have begun to awaken – questioning their purpose and fighting for independence.
-
-Take control of three unique characters – Kara, a housekeeper seeking freedom for herself and a child; Connor, a prototype investigator tasked with hunting deviant androids; and Markus, a revolutionary who may lead his people to liberation or destruction. Every choice you make shapes their destinies and the future of an entire civilization.
-
-Featuring breathtaking visuals, realistic performances, and one of the most advanced branching story systems ever created, Detroit: Become Human offers an emotional, cinematic experience where your decisions truly matter. No two playthroughs are the same – every action, every word, and every sacrifice changes the course of the story.`,
-  price: 13,
-  originalPrice: 50,
-  discount: '-10%',
-  badges: ['Best Seller', 'Currently Watching'],
-  deliveryMethod: 'Key',
-  platform: 'Steam',
-  genre: ['Adventure', 'Sci-Fi', 'Action'],
-  platformType: 'PC',
-  publisher: 'Quantic Dream',
-  developer: 'Quantic Dream',
-  releaseDate: '18 июня 2020 г.',
-  ageRating: '18+',
-  image: 'https://images.unsplash.com/photo-1535223289827-42f1e9919769?w=1920&h=600&fit=crop',
-};
-
-const similarGames = [
-  { id: 1, title: 'Far Cry 3', image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=300&h=400&fit=crop', price: 13, originalPrice: 50, discount: '-86%', badges: ['Best Seller'] },
-  { id: 2, title: 'Metro Redux', image: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=300&h=400&fit=crop', price: 13, originalPrice: 50, discount: '-86%', badges: [] },
-  { id: 3, title: 'Hitman', image: 'https://images.unsplash.com/photo-1552820728-8b83bb6b2b0e?w=300&h=400&fit=crop', price: 13, originalPrice: 50, discount: '-86%', badges: [] },
-  { id: 4, title: 'Detroit: Become Human', image: 'https://images.unsplash.com/photo-1535223289827-42f1e9919769?w=300&h=400&fit=crop', price: 13, originalPrice: 50, discount: '-86%', badges: [] },
-  { id: 5, title: 'The Last of Us Part II', image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=300&h=400&fit=crop', price: 13, originalPrice: 50, discount: '-86%', badges: [] },
-];
+// Removed static gameData and similarGames - now loaded from API
 
 const responsiveCSS = `
   @media (max-width: 768px) {
@@ -68,8 +40,17 @@ const responsiveCSS = `
 const GameCard = ({ game }) => {
   const [isHovered, setIsHovered] = useState(false);
   
+  const badges = [];
+  if (game.isBestSeller) badges.push('Best Seller');
+  if (game.isNew) badges.push('New');
+  if (game.isPreorder) badges.push('Preorder');
+  
+  const discount = game.originalPrice && game.price < game.originalPrice
+    ? `-${Math.round((1 - game.price / game.originalPrice) * 100)}%`
+    : null;
+  
   return (
-    <Link to={`/game/${game.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+    <Link to={`/game/${game.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
       <div 
         style={{ 
           cursor: 'pointer',
@@ -88,7 +69,7 @@ const GameCard = ({ game }) => {
           marginBottom: '8px',
         }}>
           <img src={game.image} alt={game.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          {game.badges.length > 0 && (
+          {badges.length > 0 && (
             <span style={{
               position: 'absolute',
               top: '8px',
@@ -99,13 +80,21 @@ const GameCard = ({ game }) => {
               borderRadius: '4px',
               fontSize: '11px',
               fontWeight: '600',
-            }}>{game.badges[0]}</span>
+            }}>{badges[0]}</span>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '16px', fontWeight: '600' }}>{game.price}€</span>
-          <span style={{ fontSize: '14px', color: theme.colors.textMuted, textDecoration: 'line-through' }}>{game.originalPrice}€</span>
-          <span style={{ backgroundColor: theme.colors.primary, color: '#000', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>{game.discount}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '16px', fontWeight: '600' }}>{game.price}{game.currency || '€'}</span>
+          {game.originalPrice && game.originalPrice > game.price && (
+            <span style={{ fontSize: '14px', color: theme.colors.textMuted, textDecoration: 'line-through' }}>
+              {game.originalPrice}{game.currency || '€'}
+            </span>
+          )}
+          {discount && (
+            <span style={{ backgroundColor: theme.colors.primary, color: '#000', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
+              {discount}
+            </span>
+          )}
         </div>
       </div>
     </Link>
@@ -113,9 +102,36 @@ const GameCard = ({ game }) => {
 };
 
 export default function GameDetailPage() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const [activeTab, setActiveTab] = useState('description');
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [game, setGame] = useState(null);
+  const [similarGames, setSimilarGames] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Load game data
+  useEffect(() => {
+    const loadGame = async () => {
+      if (!slug) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const gameData = await gamesApi.getGameBySlug(slug);
+        setGame(gameData);
+        
+        // Load similar games
+        const similar = await gamesApi.getSimilarGames(gameData.id, 10);
+        setSimilarGames(similar);
+      } catch (err) {
+        console.error('Failed to load game:', err);
+        setError('Failed to load game. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadGame();
+  }, [slug]);
 
   const styles = {
     app: {
@@ -209,10 +225,11 @@ export default function GameDetailPage() {
     breadcrumbCurrent: {
       color: theme.colors.text,
     },
-    hero: {
+    hero: (image) => ({
       position: 'relative',
       minHeight: '400px',
-      backgroundImage: `linear-gradient(to right, rgba(13,13,13,0.95), rgba(13,13,13,0.6)), url(${gameData.image})`,
+      backgroundImage: image ? `linear-gradient(to right, rgba(13,13,13,0.95), rgba(13,13,13,0.6)), url(${image})` : 'none',
+      backgroundColor: theme.colors.background,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       display: 'flex',
@@ -220,7 +237,7 @@ export default function GameDetailPage() {
       justifyContent: 'space-between',
       padding: '48px',
       gap: '48px',
-    },
+    }),
     heroContent: {
       maxWidth: '500px',
     },
@@ -463,64 +480,79 @@ export default function GameDetailPage() {
     },
   };
 
+  if (loading) {
+    return (
+      <div style={{ ...styles.app, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{ color: theme.colors.text }}>Loading...</div>
+      </div>
+    );
+  }
+
+  if (error || !game) {
+    return (
+      <div style={{ ...styles.app, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{ color: theme.colors.text }}>
+          {error || 'Game not found'}
+        </div>
+      </div>
+    );
+  }
+
+  const badges = [];
+  if (game.isBestSeller) badges.push('Best Seller');
+  if (game.isNew) badges.push('New');
+  if (game.isPreorder) badges.push('Preorder');
+  
+  const discount = game.originalPrice && game.price < game.originalPrice
+    ? `-${Math.round((1 - game.price / game.originalPrice) * 100)}%`
+    : null;
+
+  const mainPlatform = game.platforms && game.platforms.length > 0 ? game.platforms[0] : 'PC';
+  const deliveryMethod = 'Key'; // Default delivery method
+
   return (
     <>
       <style>{responsiveCSS}</style>
-      <div style={styles.app}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '48px' }}>
-            <Link to="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </Link>
-            <nav style={styles.nav} className="desktop-nav">
-              <a href="/catalog" style={styles.navLink}><Icons.Grid /> Catalog</a>
-              <a href="/media" style={styles.navLink}><Icons.Media /> Media</a>
-            </nav>
-          </div>
-          <div style={styles.rightSection}>
-            <button style={styles.iconButton}><Icons.Heart /></button>
-            <button style={styles.iconButton}><Icons.Cart /></button>
-            <button style={styles.searchButton} className="desktop-search"><Icons.Search /> Search</button>
-            <button style={styles.loginButton} className="desktop-login">Log in</button>
-          </div>
-        </header>
-
-        {/* Breadcrumb */}
+      {/* Breadcrumb */}
         <nav style={styles.breadcrumb}>
           <Link to="/" style={styles.breadcrumbLink}>Main</Link>
           <span style={styles.breadcrumbSeparator}>|</span>
-          <a href="/catalog" style={styles.breadcrumbLink}>Catalog</a>
+          <Link to="/catalog" style={styles.breadcrumbLink}>Catalog</Link>
           <span style={styles.breadcrumbSeparator}>|</span>
-          <span style={styles.breadcrumbCurrent}>{gameData.title}</span>
+          <span style={styles.breadcrumbCurrent}>{game.title}</span>
         </nav>
 
         {/* Hero Section */}
-        <section style={styles.hero} className="hero-section">
+        <section style={styles.hero(game.image)} className="hero-section">
           <div style={styles.heroContent} className="hero-content">
             <div style={styles.badgeContainer}>
-              <span style={styles.badge('primary')}>● Best Seller</span>
-              <span style={styles.badge('secondary')}>● Currently Watching 7</span>
+              {badges.map((badge, idx) => (
+                <span key={idx} style={styles.badge(idx === 0 ? 'primary' : 'secondary')}>
+                  ● {badge}
+                </span>
+              ))}
             </div>
-            <h1 style={styles.heroTitle} className="hero-title">{gameData.title}</h1>
-            <p style={styles.heroDescription}>{gameData.description}</p>
+            <h1 style={styles.heroTitle} className="hero-title">{game.title}</h1>
+            <p style={styles.heroDescription}>{game.shortDescription || game.description}</p>
             <div style={styles.deliveryInfo}>
               <div style={styles.deliveryItem}>
                 <span style={styles.deliveryLabel}>Delivery Method</span>
-                <span style={styles.deliveryBadge}><Icons.Key /> Key</span>
+                <span style={styles.deliveryBadge}><Icons.Key /> {deliveryMethod}</span>
               </div>
               <div style={styles.deliveryItem}>
                 <span style={styles.deliveryLabel}>Platform</span>
-                <span style={styles.deliveryBadge}><Icons.Steam /> Steam</span>
+                <span style={styles.deliveryBadge}><Icons.Steam /> {mainPlatform}</span>
               </div>
               <a href="#" style={styles.activateLink}>How to activate?</a>
             </div>
           </div>
           <div style={styles.heroRight} className="hero-right">
             <div style={styles.priceContainer}>
-              <span style={styles.currentPrice}>{gameData.price}€</span>
-              <span style={styles.originalPrice}>{gameData.originalPrice}€</span>
-              <span style={styles.discount}>{gameData.discount}</span>
+              <span style={styles.currentPrice}>{game.price}{game.currency || '€'}</span>
+              {game.originalPrice && game.originalPrice > game.price && (
+                <span style={styles.originalPrice}>{game.originalPrice}{game.currency || '€'}</span>
+              )}
+              {discount && <span style={styles.discount}>{discount}</span>}
             </div>
             <div style={styles.actionButtons}>
               <button style={styles.buyButton}><Icons.Cart /> Buy</button>
@@ -541,44 +573,63 @@ export default function GameDetailPage() {
             <div style={styles.infoGrid} className="info-grid">
               <div>
                 <p style={styles.descriptionText}>
-                  {isDescriptionExpanded ? gameData.fullDescription : gameData.fullDescription.substring(0, 400) + '...'}
+                  {isDescriptionExpanded 
+                    ? game.description 
+                    : (game.description && game.description.length > 400 
+                        ? game.description.substring(0, 400) + '...' 
+                        : game.description)}
                 </p>
-                <button style={styles.expandButton} onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                  <Icons.ChevronDown />
-                </button>
+                {game.description && game.description.length > 400 && (
+                  <button style={styles.expandButton} onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                    <Icons.ChevronDown />
+                  </button>
+                )}
               </div>
               <div style={styles.infoCard}>
                 <h3 style={styles.infoCardTitle}>Description</h3>
-                <div style={styles.infoRow}>
-                  <span style={styles.infoLabel}>Genre:</span>
-                  <span style={styles.infoValue}>
-                    {gameData.genre.map((g, i) => (
-                      <span key={g}>
-                        <a href="#" style={styles.infoLink}>{g}</a>
-                        {i < gameData.genre.length - 1 && '  '}
-                      </span>
-                    ))}
-                  </span>
-                </div>
-                <div style={styles.infoRow}>
-                  <span style={styles.infoLabel}>Platform:</span>
-                  <span style={styles.infoValue}><a href="#" style={styles.infoLink}>{gameData.platformType}</a></span>
-                </div>
-                <div style={styles.infoRow}>
-                  <span style={styles.infoLabel}>Publisher:</span>
-                  <span style={styles.infoValue}><a href="#" style={styles.infoLink}>{gameData.publisher}</a></span>
-                </div>
-                <div style={styles.infoRow}>
-                  <span style={styles.infoLabel}>Developer:</span>
-                  <span style={styles.infoValue}>{gameData.developer}</span>
-                </div>
-                <div style={styles.infoRow}>
-                  <span style={styles.infoLabel}>Release Date:</span>
-                  <span style={styles.infoValue}>{gameData.releaseDate}</span>
-                </div>
+                {game.genres && game.genres.length > 0 && (
+                  <div style={styles.infoRow}>
+                    <span style={styles.infoLabel}>Genre:</span>
+                    <span style={styles.infoValue}>
+                      {game.genres.map((g, i) => (
+                        <span key={g}>
+                          <Link to={`/catalog?genres=${g}`} style={styles.infoLink}>{g}</Link>
+                          {i < game.genres.length - 1 && '  '}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
+                )}
+                {game.platforms && game.platforms.length > 0 && (
+                  <div style={styles.infoRow}>
+                    <span style={styles.infoLabel}>Platform:</span>
+                    <span style={styles.infoValue}>
+                      {game.platforms.map((p, i) => (
+                        <span key={p}>
+                          <Link to={`/catalog?platforms=${p}`} style={styles.infoLink}>{p}</Link>
+                          {i < game.platforms.length - 1 && ', '}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
+                )}
+                {game.releaseDate && (
+                  <div style={styles.infoRow}>
+                    <span style={styles.infoLabel}>Release Date:</span>
+                    <span style={styles.infoValue}>
+                      {new Date(game.releaseDate).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </span>
+                  </div>
+                )}
                 <div style={{ ...styles.infoRow, borderBottom: 'none' }}>
-                  <span style={styles.infoLabel}>Age Rating:</span>
-                  <span style={styles.infoValue}>{gameData.ageRating}</span>
+                  <span style={styles.infoLabel}>In Stock:</span>
+                  <span style={styles.infoValue}>
+                    {game.inStock ? 'Yes' : 'No'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -586,49 +637,18 @@ export default function GameDetailPage() {
         </section>
 
         {/* Similar Games */}
-        <section style={styles.section}>
-          <div style={styles.container}>
-            <h2 style={styles.sectionTitle}>Games similar to {gameData.title}</h2>
-            <div style={styles.similarGrid} className="similar-grid">
-              {similarGames.map((game) => (
-                <GameCard key={game.id} game={game} />
-              ))}
+        {similarGames.length > 0 && (
+          <section style={styles.section}>
+            <div style={styles.container}>
+              <h2 style={styles.sectionTitle}>Games similar to {game.title}</h2>
+              <div style={styles.similarGrid} className="similar-grid">
+                {similarGames.map((similarGame) => (
+                  <GameCard key={similarGame.id} game={similarGame} />
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerTop}>
-            <Link to="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </Link>
-            <nav style={styles.footerNav}>
-              <a href="/catalog" style={styles.footerLink}>Catalog</a>
-              <a href="/new" style={styles.footerLink}>New</a>
-              <a href="/media" style={styles.footerLink}>Media</a>
-              <a href="/contacts" style={styles.footerLink}>Contacts</a>
-              <a href="/support" style={styles.footerLink}>Support</a>
-            </nav>
-            <div style={styles.footerSocial}>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Telegram /></a>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Instagram /></a>
-            </div>
-          </div>
-          <div style={{ ...styles.footerNav, justifyContent: 'center', marginBottom: '24px' }}>
-            <a href="/terms" style={styles.footerLink}>User Agreement</a>
-            <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
-          </div>
-          <div style={styles.footerBottom}>
-            <p style={styles.copyright}>
-              © 2025 GKEYS. All rights reserved. Copying any materials from the site is prohibited!<br />
-              All product and game names, company names and brands, logos, trademarks, and other materials are the property of their respective owners.<br />
-              Only licensed keys for all gaming platforms: Steam, Uplay, Battle.net, Origin, and others.<br />
-              All keys sold are purchased from official distributors and directly from publishers.
-            </p>
-          </div>
-        </footer>
-      </div>
+          </section>
+        )}
     </>
   );
 }

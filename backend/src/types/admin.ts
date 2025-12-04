@@ -1,14 +1,50 @@
 export interface AdminDashboardStats {
   totalUsers: number;
-  transactionsToday: number;
+  newUsersToday: number;
+  totalGames: number;
+  totalOrders: number;
   pendingOrders: number;
+  completedOrders: number;
+  transactionsToday: number;
   totalRevenue: number;
+  revenueToday: number;
+  revenueThisWeek: number;
+  revenueThisMonth: number;
+  topSellingGames: {
+    id: string;
+    title: string;
+    slug: string;
+    salesCount: number;
+    revenue: number;
+  }[];
+  recentOrders: {
+    id: string;
+    userEmail: string;
+    total: number;
+    status: string;
+    createdAt: string;
+  }[];
+  recentTransactions: {
+    id: string;
+    userEmail: string;
+    amount: number;
+    type: string;
+    status: string;
+    createdAt: string;
+  }[];
+  salesByDay: {
+    date: string;
+    count: number;
+    revenue: number;
+  }[];
 }
 
 export interface UserSearchFilters {
   query?: string;
   email?: string;
   name?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface TransactionFilters {
@@ -17,6 +53,8 @@ export interface TransactionFilters {
   startDate?: string;
   endDate?: string;
   transactionHash?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface UserDetailsResponse {
@@ -43,3 +81,34 @@ export interface UserDetailsResponse {
   }[];
 }
 
+export interface GameCreateInput {
+  title: string;
+  slug: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  imageUrl: string;
+  platform: string;
+  genre: string;
+  tags: string[];
+  publisher?: string;
+  developer?: string;
+  releaseDate?: string;
+  isPreorder?: boolean;
+  inStock?: boolean;
+}
+
+export interface GameUpdateInput extends Partial<GameCreateInput> {}
+
+export interface BlogPostCreateInput {
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string;
+  imageUrl?: string;
+  category: string;
+  tags: string[];
+  published?: boolean;
+}
+
+export interface BlogPostUpdateInput extends Partial<BlogPostCreateInput> {}

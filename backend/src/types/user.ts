@@ -24,6 +24,19 @@ export interface UpdateProfileRequest {
   password?: string;
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface UserStatsResponse {
+  totalGames: number;
+  totalSaved: number;
+  daysSinceRegistration: number;
+  totalOrders: number;
+  balance: number;
+}
+
 export interface BalanceResponse {
   balance: number;
   currency: string;

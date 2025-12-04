@@ -113,3 +113,29 @@ export const getArticleBySlug = async (slug: string): Promise<ArticleResponse | 
   };
 };
 
+export const getCategories = async (): Promise<Array<{ name: string; slug: string; count: number }>> => {
+  // Get all articles and group by category
+  const articles = await prisma.article.findMany({
+    where: { published: true },
+    select: { category: true },
+  });
+
+  const categoryMap = new Map<string, number>();
+  
+  for (const article of articles) {
+    const count = categoryMap.get(article.category) || 0;
+    categoryMap.set(article.category, count + 1);
+  }
+
+  const categories = [
+    { name: 'All', slug: 'all', count: articles.length },
+    ...Array.from(categoryMap.entries()).map(([category, count]) => ({
+      name: category.charAt(0).toUpperCase() + category.slice(1),
+      slug: category.toLowerCase(),
+      count,
+    })),
+  ];
+
+  return categories;
+};
+

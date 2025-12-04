@@ -1,5 +1,7 @@
 // Cart/Checkout Page - GKEYS Gaming Store
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { gamesApi } from '../services/gamesApi';
 
 const theme = {
   colors: {
@@ -42,15 +44,26 @@ const initialCartItems = [
   { id: 3, title: 'Red Dead Redemption 2', price: 39.99, originalPrice: 59.99, image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=120&h=160&fit=crop', platform: 'Rockstar', quantity: 2 },
 ];
 
-const recommendedGames = [
-  { id: 10, title: 'GTA V', price: 29.99, image: 'https://images.unsplash.com/photo-1552820728-8b83bb6b2b0d?w=150&h=200&fit=crop' },
-  { id: 11, title: 'The Witcher 3', price: 19.99, image: 'https://images.unsplash.com/photo-1493711662062-fa541f7f3d24?w=150&h=200&fit=crop' },
-  { id: 12, title: 'Hogwarts Legacy', price: 54.99, image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=150&h=200&fit=crop' },
-];
-
 export default function CartPage() {
   const [cartItems, setCartItems] = useState(initialCartItems);
+  const [recommendedGames, setRecommendedGames] = useState([]);
   const [promoCode, setPromoCode] = useState('');
+  
+  // Load recommended games based on cart items
+  useEffect(() => {
+    const loadRecommendations = async () => {
+      try {
+        // Get random games as recommendations (in real app, would fetch similar games)
+        const games = await gamesApi.getRandomGames(8);
+        setRecommendedGames(games);
+      } catch (error) {
+        console.error('Failed to load recommendations:', error);
+        // Fallback to empty array
+        setRecommendedGames([]);
+      }
+    };
+    loadRecommendations();
+  }, []);
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('balance');
@@ -82,10 +95,11 @@ export default function CartPage() {
     .checkout-layout { display: grid; grid-template-columns: 1fr 380px; gap: 32px; }
     .cart-items { display: flex; flex-direction: column; gap: 16px; }
     .cart-item { display: grid; grid-template-columns: 100px 1fr auto; gap: 16px; align-items: center; }
-    .recommended-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .recommended-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
     @media (max-width: 1024px) {
       .checkout-layout { grid-template-columns: 1fr; }
       .order-summary { position: static; }
+      .recommended-grid { grid-template-columns: repeat(3, 1fr); }
     }
     @media (max-width: 768px) {
       .cart-item { grid-template-columns: 80px 1fr; }
@@ -169,27 +183,7 @@ export default function CartPage() {
   return (
     <>
       <style>{responsiveCSS}</style>
-      <div style={styles.app}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '48px' }}>
-            <a href="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </a>
-            <nav style={styles.nav} className="desktop-nav">
-              <a href="/catalog" style={styles.navLink}><Icons.Grid /> Catalog</a>
-              <a href="/media" style={styles.navLink}><Icons.Media /> Media</a>
-            </nav>
-          </div>
-          <div style={styles.rightSection}>
-            <button style={styles.iconButton}><Icons.Heart filled={false} /></button>
-            <button style={{ ...styles.iconButton, color: theme.colors.primary }}><Icons.Cart /></button>
-            <button style={styles.searchButton} className="desktop-search"><Icons.Search /> Search</button>
-            <button style={styles.loginButton} className="desktop-login">Log in</button>
-          </div>
-        </header>
-
-        {/* Main Content */}
+      {/* Main Content */}
         <main style={styles.main}>
           <h1 style={styles.pageTitle}>Shopping Cart</h1>
           <p style={styles.itemCount}>{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}</p>
@@ -229,19 +223,34 @@ export default function CartPage() {
                 </div>
 
                 {/* Recommended Games */}
-                <h2 style={styles.sectionTitle}>You might also like</h2>
-                <div className="recommended-grid">
-                  {recommendedGames.map(game => (
-                    <div key={game.id} style={styles.recommendedCard}>
-                      <img src={game.image} alt={game.title} style={styles.recommendedImage} />
-                      <div style={styles.recommendedInfo}>
-                        <p style={styles.recommendedTitle}>{game.title}</p>
-                        <p style={styles.recommendedPrice}>${game.price}</p>
-                        <button style={styles.addToCartBtn}>Add to Cart</button>
-                      </div>
+                {recommendedGames.length > 0 && (
+                  <>
+                    <h2 style={styles.sectionTitle}>You might also like</h2>
+                    <div className="recommended-grid">
+                      {recommendedGames.map(game => (
+                        <div key={game.id} style={styles.recommendedCard}>
+                          <Link to={`/game/${game.slug}`} style={{ textDecoration: 'none' }}>
+                            <img src={game.image} alt={game.title} style={styles.recommendedImage} />
+                          </Link>
+                          <div style={styles.recommendedInfo}>
+                            <Link to={`/game/${game.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                              <p style={styles.recommendedTitle}>{game.title}</p>
+                            </Link>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                              <p style={styles.recommendedPrice}>€{game.price?.toFixed(2)}</p>
+                              {game.originalPrice && game.originalPrice > game.price && (
+                                <span style={{ fontSize: '12px', color: theme.colors.textMuted, textDecoration: 'line-through' }}>
+                                  €{game.originalPrice.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                            <button style={styles.addToCartBtn}>Add to Cart</button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                )}
               </div>
 
               {/* Order Summary */}
@@ -342,29 +351,6 @@ export default function CartPage() {
             </div>
           )}
         </main>
-
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerTop}>
-            <a href="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </a>
-            <nav style={styles.footerNav}>
-              <a href="/catalog" style={styles.footerLink}>Catalog</a>
-              <a href="/new" style={styles.footerLink}>New</a>
-              <a href="/media" style={styles.footerLink}>Media</a>
-              <a href="/support" style={styles.footerLink}>Support</a>
-            </nav>
-            <div style={styles.footerSocial}>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Telegram /></a>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Instagram /></a>
-            </div>
-          </div>
-          <div style={styles.footerBottom}>
-            <p style={styles.copyright}>© 2025 GKEYS. All rights reserved.</p>
-          </div>
-        </footer>
-      </div>
     </>
   );
 }

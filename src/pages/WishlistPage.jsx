@@ -1,5 +1,7 @@
 // Wishlist Page - GKEYS Gaming Store
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { gamesApi } from '../services/gamesApi';
 
 const theme = {
   colors: {
@@ -40,6 +42,20 @@ const initialWishlist = [
 export default function WishlistPage() {
   const [wishlist, setWishlist] = useState(initialWishlist);
   const [notification, setNotification] = useState(null);
+  const [randomGames, setRandomGames] = useState([]);
+
+  // Load random games on mount
+  useEffect(() => {
+    const loadRandomGames = async () => {
+      try {
+        const games = await gamesApi.getRandomGames(8);
+        setRandomGames(games);
+      } catch (error) {
+        console.error('Failed to load random games:', error);
+      }
+    };
+    loadRandomGames();
+  }, []);
 
   const removeFromWishlist = (id) => {
     setWishlist(items => items.filter(item => item.id !== id));
@@ -65,16 +81,20 @@ export default function WishlistPage() {
   const responsiveCSS = `
     .wishlist-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
     .wishlist-stats { display: flex; gap: 32px; margin-bottom: 32px; }
+    .random-games-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
     @media (max-width: 1024px) {
       .wishlist-grid { grid-template-columns: repeat(3, 1fr); }
+      .random-games-grid { grid-template-columns: repeat(3, 1fr); }
     }
     @media (max-width: 768px) {
       .wishlist-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .random-games-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
       .wishlist-stats { flex-direction: column; gap: 16px; }
       .desktop-nav, .desktop-search, .desktop-login { display: none; }
     }
     @media (max-width: 480px) {
       .wishlist-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .random-games-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     }
   `;
 
@@ -114,6 +134,14 @@ export default function WishlistPage() {
     emptyText: { color: theme.colors.textMuted, marginBottom: '32px', maxWidth: '400px', margin: '0 auto 32px' },
     browseBtn: { background: theme.colors.primary, color: '#000', border: 'none', padding: '14px 32px', borderRadius: '10px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
     notification: { position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, padding: '16px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: '500', zIndex: 1000, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' },
+    randomSection: { marginTop: '64px', paddingTop: '48px', borderTop: `1px solid ${theme.colors.border}` },
+    randomTitle: { fontSize: '24px', fontWeight: '700', marginBottom: '24px' },
+    randomCard: { background: theme.colors.surface, borderRadius: '12px', overflow: 'hidden', transition: 'transform 0.2s ease' },
+    randomImage: { width: '100%', aspectRatio: '3/4', objectFit: 'cover' },
+    randomInfo: { padding: '12px' },
+    randomGameTitle: { fontSize: '14px', fontWeight: '500', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: theme.colors.text },
+    randomPrice: { fontSize: '16px', fontWeight: '700', color: theme.colors.primary },
+    randomOriginalPrice: { fontSize: '12px', color: theme.colors.textMuted, textDecoration: 'line-through', marginLeft: '8px' },
     footer: { borderTop: `1px solid ${theme.colors.border}`, padding: '48px 24px', marginTop: '64px' },
     footerTop: { display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '24px', marginBottom: '32px', maxWidth: '1280px', margin: '0 auto 32px' },
     footerNav: { display: 'flex', flexWrap: 'wrap', gap: '24px' },
@@ -126,31 +154,11 @@ export default function WishlistPage() {
   return (
     <>
       <style>{responsiveCSS}</style>
-      <div style={styles.app}>
-        {/* Notification */}
-        {notification && <div style={styles.notification}>{notification}</div>}
+      {/* Notification */}
+      {notification && <div style={styles.notification}>{notification}</div>}
 
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '48px' }}>
-            <a href="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </a>
-            <nav style={styles.nav} className="desktop-nav">
-              <a href="/catalog" style={styles.navLink}><Icons.Grid /> Catalog</a>
-              <a href="/media" style={styles.navLink}><Icons.Media /> Media</a>
-            </nav>
-          </div>
-          <div style={styles.rightSection}>
-            <button style={{ ...styles.iconButton, color: theme.colors.primary }}><Icons.Heart filled={true} /></button>
-            <button style={styles.iconButton}><Icons.Cart /></button>
-            <button style={styles.searchButton} className="desktop-search"><Icons.Search /> Search</button>
-            <button style={styles.loginButton} className="desktop-login">Log in</button>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main style={styles.main}>
+      {/* Main Content */}
+      <main style={styles.main}>
           {wishlist.length > 0 ? (
             <>
               <div style={styles.pageHeader}>
@@ -208,42 +216,81 @@ export default function WishlistPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Random Games Section */}
+              {randomGames.length > 0 && (
+                <section style={styles.randomSection}>
+                  <h2 style={styles.randomTitle}>Discover New Games</h2>
+                  <div className="random-games-grid">
+                    {randomGames.map(game => (
+                      <Link 
+                        key={game.id} 
+                        to={`/game/${game.slug}`} 
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <div style={styles.randomCard}>
+                          <img src={game.image} alt={game.title} style={styles.randomImage} />
+                          <div style={styles.randomInfo}>
+                            <h3 style={styles.randomGameTitle}>{game.title}</h3>
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                              <span style={styles.randomPrice}>€{game.price?.toFixed(2)}</span>
+                              {game.originalPrice && game.originalPrice > game.price && (
+                                <span style={styles.randomOriginalPrice}>€{game.originalPrice.toFixed(2)}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              )}
             </>
           ) : (
-            <div style={styles.emptyWishlist}>
-              <div style={styles.emptyIcon}>💚</div>
-              <h2 style={styles.emptyTitle}>Your wishlist is empty</h2>
-              <p style={styles.emptyText}>
-                Save games you're interested in by clicking the heart icon. 
-                We'll notify you when they go on sale!
-              </p>
-              <button style={styles.browseBtn}>Browse Catalog</button>
-            </div>
+            <>
+              <div style={styles.emptyWishlist}>
+                <div style={styles.emptyIcon}>💚</div>
+                <h2 style={styles.emptyTitle}>Your wishlist is empty</h2>
+                <p style={styles.emptyText}>
+                  Save games you're interested in by clicking the heart icon. 
+                  We'll notify you when they go on sale!
+                </p>
+                <Link to="/catalog">
+                  <button style={styles.browseBtn}>Browse Catalog</button>
+                </Link>
+              </div>
+
+              {/* Random Games Section - also shown when wishlist is empty */}
+              {randomGames.length > 0 && (
+                <section style={{ ...styles.randomSection, marginTop: '32px', borderTop: 'none' }}>
+                  <h2 style={styles.randomTitle}>Discover New Games</h2>
+                  <div className="random-games-grid">
+                    {randomGames.map(game => (
+                      <Link 
+                        key={game.id} 
+                        to={`/game/${game.slug}`} 
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <div style={styles.randomCard}>
+                          <img src={game.image} alt={game.title} style={styles.randomImage} />
+                          <div style={styles.randomInfo}>
+                            <h3 style={styles.randomGameTitle}>{game.title}</h3>
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                              <span style={styles.randomPrice}>€{game.price?.toFixed(2)}</span>
+                              {game.originalPrice && game.originalPrice > game.price && (
+                                <span style={styles.randomOriginalPrice}>€{game.originalPrice.toFixed(2)}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </main>
-
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerTop}>
-            <a href="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </a>
-            <nav style={styles.footerNav}>
-              <a href="/catalog" style={styles.footerLink}>Catalog</a>
-              <a href="/new" style={styles.footerLink}>New</a>
-              <a href="/media" style={styles.footerLink}>Media</a>
-              <a href="/support" style={styles.footerLink}>Support</a>
-            </nav>
-            <div style={styles.footerSocial}>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Telegram /></a>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Instagram /></a>
-            </div>
-          </div>
-          <div style={styles.footerBottom}>
-            <p style={styles.copyright}>© 2025 GKEYS. All rights reserved.</p>
-          </div>
-        </footer>
-      </div>
     </>
   );
 }

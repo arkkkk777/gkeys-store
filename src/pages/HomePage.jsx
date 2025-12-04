@@ -48,83 +48,6 @@ const responsiveCSS = `
 `;
 
 const styles = {
-  app: {
-    minHeight: '100vh',
-    backgroundColor: theme.colors.background,
-    color: theme.colors.text,
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '16px 24px',
-    backgroundColor: theme.colors.background,
-    borderBottom: `1px solid ${theme.colors.border}`,
-    position: 'sticky',
-    top: 0,
-    zIndex: 1000,
-  },
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: '24px',
-    fontWeight: '700',
-    textDecoration: 'none',
-    color: theme.colors.text,
-  },
-  nav: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '32px',
-  },
-  navLink: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    color: theme.colors.text,
-    textDecoration: 'none',
-    fontSize: '16px',
-  },
-  rightSection: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  iconButton: {
-    width: '44px',
-    height: '44px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '50%',
-    backgroundColor: theme.colors.surface,
-    color: theme.colors.text,
-    border: 'none',
-    cursor: 'pointer',
-  },
-  searchButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '10px 20px',
-    backgroundColor: theme.colors.surface,
-    borderRadius: '50px',
-    color: theme.colors.textSecondary,
-    border: 'none',
-    cursor: 'pointer',
-    minWidth: '150px',
-  },
-  loginButton: {
-    padding: '10px 24px',
-    backgroundColor: 'transparent',
-    border: `1px solid ${theme.colors.border}`,
-    borderRadius: '8px',
-    color: theme.colors.text,
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
   hero: {
     position: 'relative',
     height: '500px',
@@ -405,11 +328,24 @@ const GameCard = ({ game }) => {
   );
 };
 
-const GameSection = ({ title, games, showLink = true }) => (
+const GameSection = ({ title, games, showLink = true, onCheckAll }) => (
   <section style={styles.section}>
     <div style={styles.sectionHeader}>
       <h2 style={styles.sectionTitle}>{title}</h2>
-      {showLink && <Link to="/catalog" style={styles.sectionLink}>Check all</Link>}
+      {showLink && (
+        <Link 
+          to={onCheckAll ? '#' : '/catalog'} 
+          style={styles.sectionLink}
+          onClick={(e) => {
+            if (onCheckAll) {
+              e.preventDefault();
+              onCheckAll();
+            }
+          }}
+        >
+          Check all
+        </Link>
+      )}
     </div>
     <div style={styles.gameGrid} className="game-grid">
       {games.length > 0 ? (
@@ -432,6 +368,9 @@ export default function HomePage() {
   const [newInCatalog, setNewInCatalog] = useState([]);
   const [preorders, setPreorders] = useState([]);
   const [newGames, setNewGames] = useState([]);
+  const [randomGames, setRandomGames] = useState([]);
+  const [genres, setGenres] = useState([]);
+  const [genreGames, setGenreGames] = useState({});
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -471,14 +410,16 @@ export default function HomePage() {
     const loadSections = async () => {
       setLoading(true);
       try {
-        const [newCatalog, preordersData, newGamesData] = await Promise.all([
+        const [newCatalog, preordersData, newGamesData, genresData] = await Promise.all([
           gamesApi.getNewInCatalog(),
           gamesApi.getPreorders(),
           gamesApi.getNewGames(),
+          gamesApi.getAllGenres(),
         ]);
         setNewInCatalog(newCatalog.slice(0, 15));
-        setPreorders(preordersData.slice(0, 4));
+        setPreorders(preordersData);
         setNewGames(newGamesData.slice(0, 10));
+        setGenres(genresData);
       } catch (error) {
         console.error('Failed to load sections:', error);
       } finally {
@@ -487,6 +428,42 @@ export default function HomePage() {
     };
     loadSections();
   }, []);
+
+  // Load random games - reloads on each page refresh
+  useEffect(() => {
+    const loadRandomGames = async () => {
+      try {
+        const games = await gamesApi.getRandomGames(10);
+        setRandomGames(games);
+      } catch (error) {
+        console.error('Failed to load random games:', error);
+      }
+    };
+    loadRandomGames();
+  }, []); // Empty deps - reloads on mount (page refresh)
+
+  // Load games for each genre
+  useEffect(() => {
+    const loadGenreGames = async () => {
+      if (genres.length === 0) return;
+      
+      try {
+        const genreGamesData = {};
+        for (const genre of genres.slice(0, 5)) { // Load first 5 genres
+          try {
+            const games = await gamesApi.getGamesByGenre(genre.slug);
+            genreGamesData[genre.slug] = games.slice(0, 20);
+          } catch (error) {
+            console.error(`Failed to load games for genre ${genre.slug}:`, error);
+          }
+        }
+        setGenreGames(genreGamesData);
+      } catch (error) {
+        console.error('Failed to load genre games:', error);
+      }
+    };
+    loadGenreGames();
+  }, [genres]);
 
   const handleGameSelect = (game) => {
     setSelectedGame(game);
@@ -508,41 +485,8 @@ export default function HomePage() {
   return (
     <>
       <style>{responsiveCSS}</style>
-      <div style={styles.app}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '48px' }}>
-            <Link to="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </Link>
-            <nav style={styles.nav} className="desktop-nav">
-              <Link to="/catalog" style={styles.navLink}>
-                <Icons.Grid /> Catalog
-              </Link>
-              <Link to="/media" style={styles.navLink}>
-                <Icons.Media /> Media
-              </Link>
-            </nav>
-          </div>
-          <div style={styles.rightSection}>
-            <button style={styles.iconButton}><Icons.Heart /></button>
-            <button style={styles.iconButton}><Icons.Cart /></button>
-            <button style={styles.searchButton} className="desktop-search">
-              <Icons.Search /> Search
-            </button>
-            <button style={styles.loginButton} className="desktop-login">Log in</button>
-            <button 
-              style={{ ...styles.mobileMenuButton, display: 'none' }} 
-              className="mobile-menu-btn"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <Icons.Close /> : <Icons.Menu />}
-            </button>
-          </div>
-        </header>
-
-        {/* Hero Section */}
-        <section style={{ position: 'relative', backgroundColor: theme.colors.background }}>
+      {/* Hero Section */}
+      <section style={{ position: 'relative', backgroundColor: theme.colors.background }}>
           <div style={{ 
             position: 'absolute', 
             top: 0, 
@@ -575,7 +519,7 @@ export default function HomePage() {
           <section style={{ ...styles.section, marginTop: '48px' }}>
             <div style={styles.sectionHeader}>
               <h2 style={styles.sectionTitle}>Best Sellers</h2>
-              <a href="#" style={styles.sectionLink}>Check all</a>
+              <Link to="/catalog" style={styles.sectionLink}>Check all</Link>
             </div>
             <div style={styles.categoryTabs} className="category-tabs">
               {categories.map((cat) => (
@@ -624,40 +568,38 @@ export default function HomePage() {
               <button style={styles.checkAllButton}>Check all</button>
             </Link>
           </div>
-        </main>
 
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerTop}>
-            <Link to="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </Link>
-            <nav style={styles.footerNav}>
-              <a href="/catalog" style={styles.footerLink}>Catalog</a>
-              <a href="/new" style={styles.footerLink}>New</a>
-              <a href="/media" style={styles.footerLink}>Media</a>
-              <a href="/contacts" style={styles.footerLink}>Contacts</a>
-              <a href="/support" style={styles.footerLink}>Support</a>
-            </nav>
-            <div style={styles.footerSocial}>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Telegram /></a>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Instagram /></a>
+          {/* Games by Genre Carousels */}
+          {genres.slice(0, 5).map((genre) => {
+            const games = genreGames[genre.slug] || [];
+            if (games.length === 0) return null;
+            
+            return (
+              <GameSection
+                key={genre.slug}
+                title={genre.name}
+                games={games}
+                showLink={true}
+                onCheckAll={() => navigate(`/catalog?genres=${genre.slug}`)}
+              />
+            );
+          })}
+
+          {/* Random Games */}
+          <div style={styles.promoSection}>
+            <h3 style={styles.promoTitle}>Random Games</h3>
+            <p style={styles.promoSubtitle}>Discover something new with our random selection</p>
+            <div style={styles.gameGrid} className="game-grid">
+              {randomGames.length > 0 ? (
+                randomGames.map((game) => (
+                  <GameCard key={game.id} game={game} />
+                ))
+              ) : (
+                <div style={{ color: theme.colors.textSecondary, padding: '24px' }}>No games available</div>
+              )}
             </div>
           </div>
-          <div style={{ ...styles.footerNav, justifyContent: 'center', marginBottom: '24px' }}>
-            <a href="/terms" style={styles.footerLink}>User Agreement</a>
-            <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
-          </div>
-          <div style={styles.footerBottom}>
-            <p style={styles.copyright}>
-              © 2025 GKEYS. All rights reserved. Copying any materials from the site is prohibited!<br />
-              All product and game names, company names and brands, logos, trademarks, and other materials are the property of their respective owners.<br />
-              Only licensed keys for all gaming platforms: Steam, Uplay, Battle.net, Origin, and others.<br />
-              All keys sold are purchased from official distributors and directly from publishers.
-            </p>
-          </div>
-        </footer>
-      </div>
+        </main>
     </>
   );
 }

@@ -1,5 +1,7 @@
 // Catalog Page - GKEYS Gaming Store
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { gamesApi } from '../services/gamesApi';
 
 const theme = {
   colors: {
@@ -46,62 +48,74 @@ const games = [
   { id: 12, title: 'Baldur\'s Gate 3', price: 59.99, originalPrice: null, discount: 0, image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=300&h=400&fit=crop', platform: 'PC', genre: 'RPG', isNew: true, isPreorder: false },
 ];
 
-const platforms = ['PC', 'PlayStation', 'Xbox', 'Nintendo'];
-const genres = ['Action', 'RPG', 'Shooter', 'Sports', 'Strategy', 'Horror', 'Racing', 'Simulation'];
-const sortOptions = ['Popular', 'Newest', 'Price: Low to High', 'Price: High to Low', 'Discount'];
+const pricePresets = [
+  { label: 'Under €10', value: 'under-10' },
+  { label: '€10 - €25', value: '10-25' },
+  { label: '€25 - €50', value: '25-50' },
+  { label: '€50 - €100', value: '50-100' },
+  { label: 'Over €100', value: 'over-100' },
+];
 
-const GameCard = ({ game, onWishlist, isWishlisted }) => (
-  <div style={{
-    background: theme.colors.surface,
-    borderRadius: '12px',
-    overflow: 'hidden',
-    transition: 'transform 0.2s, box-shadow 0.2s',
-    cursor: 'pointer',
-  }}>
-    <div style={{ position: 'relative' }}>
-      <img src={game.image} alt={game.title} style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover' }} />
-      {game.discount > 0 && (
-        <span style={{
-          position: 'absolute', top: '8px', left: '8px',
-          background: theme.colors.discount, color: '#fff',
-          padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600',
-        }}>-{game.discount}%</span>
-      )}
-      {game.isNew && (
-        <span style={{
-          position: 'absolute', top: '8px', right: '8px',
-          background: theme.colors.primary, color: '#000',
-          padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600',
-        }}>NEW</span>
-      )}
-      {game.isPreorder && (
-        <span style={{
-          position: 'absolute', top: '8px', right: '8px',
-          background: '#FFB800', color: '#000',
-          padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600',
-        }}>PREORDER</span>
-      )}
-      <button onClick={(e) => { e.stopPropagation(); onWishlist(game.id); }} style={{
-        position: 'absolute', bottom: '8px', right: '8px',
-        background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%',
-        width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', color: isWishlisted ? theme.colors.primary : '#fff',
-      }}>
-        <Icons.Heart filled={isWishlisted} />
-      </button>
-    </div>
-    <div style={{ padding: '12px' }}>
-      <div style={{ fontSize: '11px', color: theme.colors.textMuted, marginBottom: '4px' }}>{game.platform} • {game.genre}</div>
-      <h3 style={{ fontSize: '14px', fontWeight: '500', color: theme.colors.text, marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{game.title}</h3>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ fontSize: '16px', fontWeight: '700', color: theme.colors.primary }}>${game.price}</span>
-        {game.originalPrice && (
-          <span style={{ fontSize: '13px', color: theme.colors.textMuted, textDecoration: 'line-through' }}>${game.originalPrice}</span>
+const GameCard = ({ game, onWishlist, isWishlisted }) => {
+  const badges = [];
+  if (game.isBestSeller) badges.push({ text: 'Best Seller', color: theme.colors.primary });
+  if (game.isNew) badges.push({ text: 'New', color: theme.colors.primary });
+  if (game.isPreorder) badges.push({ text: 'Preorder', color: '#FFB800' });
+  
+  return (
+    <div style={{
+      background: theme.colors.surface,
+      borderRadius: '12px',
+      overflow: 'hidden',
+      transition: 'transform 0.2s, box-shadow 0.2s',
+      cursor: 'pointer',
+    }}
+    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; }}
+    onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; }}
+    >
+      <div style={{ position: 'relative' }}>
+        <img src={game.image} alt={game.title} style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover' }} />
+        {badges.length > 0 && (
+          <div style={{ position: 'absolute', top: '8px', left: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {badges.map((badge, idx) => (
+              <span key={idx} style={{
+                background: badge.color, color: badge.color === theme.colors.primary ? '#000' : '#000',
+                padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600',
+              }}>{badge.text}</span>
+            ))}
+          </div>
         )}
+        {game.discount && game.discount > 0 && (
+          <span style={{
+            position: 'absolute', top: '8px', right: '8px',
+            background: theme.colors.discount, color: '#fff',
+            padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600',
+          }}>-{game.discount}%</span>
+        )}
+        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onWishlist(game.id); }} style={{
+          position: 'absolute', bottom: '8px', right: '8px',
+          background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%',
+          width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: isWishlisted ? theme.colors.primary : '#fff',
+        }}>
+          <Icons.Heart filled={isWishlisted} />
+        </button>
+      </div>
+      <div style={{ padding: '12px' }}>
+        <div style={{ fontSize: '11px', color: theme.colors.textMuted, marginBottom: '4px' }}>
+          {game.platforms && game.platforms.length > 0 ? game.platforms[0] : 'PC'} • {game.genres && game.genres.length > 0 ? game.genres[0] : 'Game'}
+        </div>
+        <h3 style={{ fontSize: '14px', fontWeight: '500', color: theme.colors.text, marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{game.title}</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '16px', fontWeight: '700', color: theme.colors.primary }}>€{typeof game.price === 'number' ? game.price.toFixed(2) : game.price}</span>
+          {game.originalPrice && (
+            <span style={{ fontSize: '13px', color: theme.colors.textMuted, textDecoration: 'line-through' }}>€{typeof game.originalPrice === 'number' ? game.originalPrice.toFixed(2) : game.originalPrice}</span>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const FilterSection = ({ title, children, defaultOpen = true }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -130,12 +144,33 @@ const Checkbox = ({ label, checked, onChange }) => (
 );
 
 export default function CatalogPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [wishlist, setWishlist] = useState([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState([]);
   const [selectedGenres, setSelectedGenres] = useState([]);
+  const [selectedActivationServices, setSelectedActivationServices] = useState([]);
+  const [selectedRegions, setSelectedRegions] = useState([]);
+  const [selectedPublishers, setSelectedPublishers] = useState([]);
+  const [multiplayer, setMultiplayer] = useState(undefined);
   const [priceRange, setPriceRange] = useState([0, 100]);
-  const [sortBy, setSortBy] = useState('Popular');
+  const [pricePreset, setPricePreset] = useState(undefined);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('popular');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [games, setGames] = useState([]);
+  const [totalGames, setTotalGames] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [inStockOnly, setInStockOnly] = useState(true);
+  const [filterOptions, setFilterOptions] = useState({
+    genres: [],
+    platforms: [],
+    activationServices: [],
+    regions: [],
+    publishers: [],
+  });
+  const [collections, setCollections] = useState([]);
 
   const toggleWishlist = (id) => {
     setWishlist(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -152,23 +187,100 @@ export default function CatalogPage() {
   const clearFilters = () => {
     setSelectedPlatforms([]);
     setSelectedGenres([]);
+    setSelectedActivationServices([]);
+    setSelectedRegions([]);
+    setSelectedPublishers([]);
+    setMultiplayer(undefined);
     setPriceRange([0, 100]);
+    setPricePreset(undefined);
+    setSearchQuery('');
+    setCurrentPage(1);
   };
 
-  const activeFiltersCount = selectedPlatforms.length + selectedGenres.length;
+  const activeFiltersCount = selectedPlatforms.length + selectedGenres.length + 
+    selectedActivationServices.length + selectedRegions.length + 
+    selectedPublishers.length + (multiplayer !== undefined ? 1 : 0) + 
+    (pricePreset ? 1 : 0) + (searchQuery ? 1 : 0);
+
+  // Load filter options and collections
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [options, collectionsData] = await Promise.all([
+          gamesApi.getFilterOptions(),
+          gamesApi.getCollections(),
+        ]);
+        setFilterOptions(options);
+        setCollections(collectionsData);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Load games from API
+  useEffect(() => {
+    const loadGames = async () => {
+      setLoading(true);
+      try {
+        const filters = {
+          page: currentPage,
+          pageSize: 36,
+          inStockOnly,
+          search: searchQuery || undefined,
+          platforms: selectedPlatforms.length > 0 ? selectedPlatforms : undefined,
+          genres: selectedGenres.length > 0 ? selectedGenres : undefined,
+          activationServices: selectedActivationServices.length > 0 ? selectedActivationServices : undefined,
+          regions: selectedRegions.length > 0 ? selectedRegions : undefined,
+          publishers: selectedPublishers.length > 0 ? selectedPublishers : undefined,
+          multiplayer: multiplayer !== undefined ? multiplayer : undefined,
+          pricePreset: pricePreset || undefined,
+          ...(!pricePreset && priceRange[0] > 0 && priceRange[1] < 100 ? {
+            priceRange: {
+              min: priceRange[0],
+              max: priceRange[1],
+            }
+          } : {}),
+          sort: sortBy,
+        };
+        
+        const result = await gamesApi.getGames(filters);
+        setGames(result.data);
+        setTotalGames(result.total);
+        setTotalPages(result.totalPages);
+      } catch (error) {
+        console.error('Failed to load games:', error);
+        setGames([]);
+        setTotalGames(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadGames();
+  }, [currentPage, selectedPlatforms, selectedGenres, selectedActivationServices, selectedRegions, selectedPublishers, multiplayer, priceRange, pricePreset, searchQuery, sortBy, inStockOnly]);
+
+  // Initialize filters from URL params
+  useEffect(() => {
+    const genreParam = searchParams.get('genres');
+    if (genreParam) {
+      setSelectedGenres([genreParam]);
+    }
+  }, [searchParams]);
 
   const responsiveCSS = `
     .catalog-layout { display: grid; grid-template-columns: 260px 1fr; gap: 32px; }
-    .filter-sidebar { position: sticky; top: 100px; height: fit-content; }
-    .games-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .filter-sidebar-desktop { position: sticky; top: 100px; height: fit-content; }
+    .filter-sidebar-mobile { display: none; }
+    .games-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
     .mobile-filter-btn { display: none; }
     @media (max-width: 1024px) {
       .games-grid { grid-template-columns: repeat(3, 1fr); }
     }
     @media (max-width: 768px) {
       .catalog-layout { grid-template-columns: 1fr; }
-      .filter-sidebar { display: none; }
-      .filter-sidebar.mobile-open { display: block; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: ${theme.colors.background}; z-index: 1000; padding: 20px; overflow-y: auto; }
+      .filter-sidebar-desktop { display: none; }
+      .filter-sidebar-mobile.mobile-open { display: block; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: ${theme.colors.background}; z-index: 1000; padding: 20px; overflow-y: auto; }
       .games-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
       .mobile-filter-btn { display: flex; }
       .desktop-nav { display: none; }
@@ -217,25 +329,46 @@ export default function CatalogPage() {
           <button onClick={clearFilters} style={styles.clearButton}>Clear all</button>
         </div>
       )}
-      
-      <FilterSection title="Platform">
-        {platforms.map(platform => (
-          <Checkbox
-            key={platform}
-            label={platform}
-            checked={selectedPlatforms.includes(platform)}
-            onChange={() => togglePlatform(platform)}
-          />
-        ))}
+
+      <FilterSection title="Search">
+        <input
+          type="text"
+          placeholder="Search games..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setCurrentPage(1);
+          }}
+          style={{
+            width: '100%',
+            padding: '10px 12px',
+            background: theme.colors.background,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: '8px',
+            color: theme.colors.text,
+            fontSize: '14px',
+          }}
+        />
       </FilterSection>
 
-      <FilterSection title="Genre">
-        {genres.map(genre => (
+      <FilterSection title="In Stock Only">
+        <Checkbox 
+          label="Show only available games" 
+          checked={inStockOnly} 
+          onChange={(e) => setInStockOnly(e.target.checked)} 
+        />
+      </FilterSection>
+
+      <FilterSection title="Price Presets">
+        {pricePresets.map(preset => (
           <Checkbox
-            key={genre}
-            label={genre}
-            checked={selectedGenres.includes(genre)}
-            onChange={() => toggleGenre(genre)}
+            key={preset.value}
+            label={preset.label}
+            checked={pricePreset === preset.value}
+            onChange={() => {
+              setPricePreset(pricePreset === preset.value ? undefined : preset.value);
+              setCurrentPage(1);
+            }}
           />
         ))}
       </FilterSection>
@@ -247,20 +380,113 @@ export default function CatalogPage() {
             min="0"
             max="100"
             value={priceRange[1]}
-            onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
+            onChange={(e) => {
+              setPriceRange([priceRange[0], parseInt(e.target.value)]);
+              setPricePreset(undefined);
+              setCurrentPage(1);
+            }}
             style={{ width: '100%', accentColor: theme.colors.primary }}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-            <span style={{ color: theme.colors.textMuted, fontSize: '13px' }}>${priceRange[0]}</span>
-            <span style={{ color: theme.colors.textMuted, fontSize: '13px' }}>${priceRange[1]}</span>
+            <span style={{ color: theme.colors.textMuted, fontSize: '13px' }}>€{priceRange[0]}</span>
+            <span style={{ color: theme.colors.textMuted, fontSize: '13px' }}>€{priceRange[1]}</span>
           </div>
         </div>
       </FilterSection>
+      
+      <FilterSection title="Platform">
+        {filterOptions.platforms.map(platform => (
+          <Checkbox
+            key={platform.slug}
+            label={platform.name}
+            checked={selectedPlatforms.includes(platform.slug)}
+            onChange={() => {
+              togglePlatform(platform.slug);
+              setCurrentPage(1);
+            }}
+          />
+        ))}
+      </FilterSection>
 
-      <FilterSection title="Special">
-        <Checkbox label="On Sale" checked={false} onChange={() => {}} />
-        <Checkbox label="New Releases" checked={false} onChange={() => {}} />
-        <Checkbox label="Pre-orders" checked={false} onChange={() => {}} />
+      <FilterSection title="Activation Service">
+        {filterOptions.activationServices.map(service => (
+          <Checkbox
+            key={service}
+            label={service}
+            checked={selectedActivationServices.includes(service)}
+            onChange={() => {
+              setSelectedActivationServices(prev => 
+                prev.includes(service) ? prev.filter(x => x !== service) : [...prev, service]
+              );
+              setCurrentPage(1);
+            }}
+          />
+        ))}
+      </FilterSection>
+
+      <FilterSection title="Activation Region">
+        {filterOptions.regions.map(region => (
+          <Checkbox
+            key={region}
+            label={region}
+            checked={selectedRegions.includes(region)}
+            onChange={() => {
+              setSelectedRegions(prev => 
+                prev.includes(region) ? prev.filter(x => x !== region) : [...prev, region]
+              );
+              setCurrentPage(1);
+            }}
+          />
+        ))}
+      </FilterSection>
+
+      <FilterSection title="Multiplayer">
+        <Checkbox
+          label="Multiplayer"
+          checked={multiplayer === true}
+          onChange={() => {
+            setMultiplayer(multiplayer === true ? undefined : true);
+            setCurrentPage(1);
+          }}
+        />
+        <Checkbox
+          label="Single Player"
+          checked={multiplayer === false}
+          onChange={() => {
+            setMultiplayer(multiplayer === false ? undefined : false);
+            setCurrentPage(1);
+          }}
+        />
+      </FilterSection>
+
+      <FilterSection title="Publisher">
+        {filterOptions.publishers.map(publisher => (
+          <Checkbox
+            key={publisher}
+            label={publisher}
+            checked={selectedPublishers.includes(publisher)}
+            onChange={() => {
+              setSelectedPublishers(prev => 
+                prev.includes(publisher) ? prev.filter(x => x !== publisher) : [...prev, publisher]
+              );
+              setCurrentPage(1);
+            }}
+          />
+        ))}
+      </FilterSection>
+
+      <FilterSection title="Genre">
+        {filterOptions.genres.map(genre => (
+          <Checkbox
+            key={genre.slug}
+            label={genre.name}
+            checked={selectedGenres.includes(genre.slug)}
+            onChange={() => {
+              toggleGenre(genre.slug);
+              setCurrentPage(1);
+            }}
+          />
+        ))}
       </FilterSection>
     </>
   );
@@ -268,52 +494,103 @@ export default function CatalogPage() {
   return (
     <>
       <style>{responsiveCSS}</style>
-      <div style={styles.app}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '48px' }}>
-            <a href="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </a>
-            <nav style={styles.nav} className="desktop-nav">
-              <a href="/catalog" style={{ ...styles.navLink, color: theme.colors.primary }}>
-                <Icons.Grid /> Catalog
-              </a>
-              <a href="/media" style={styles.navLink}>
-                <Icons.Media /> Media
-              </a>
-            </nav>
-          </div>
-          <div style={styles.rightSection}>
-            <button style={styles.iconButton}><Icons.Heart filled={false} /></button>
-            <button style={styles.iconButton}><Icons.Cart /></button>
-            <button style={styles.searchButton} className="desktop-search">
-              <Icons.Search /> Search
-            </button>
-            <button style={styles.loginButton} className="desktop-login">Log in</button>
-          </div>
-        </header>
-
-        {/* Main Content */}
+      {/* Main Content */}
         <main style={styles.main}>
           <h1 style={styles.pageTitle}>Catalog</h1>
-          <p style={styles.resultCount}>{games.length} games found</p>
+          <p style={styles.resultCount}>{totalGames} games available</p>
 
           {/* Active Filters */}
-          {(selectedPlatforms.length > 0 || selectedGenres.length > 0) && (
+          {activeFiltersCount > 0 && (
             <div style={styles.activeFilters}>
-              {selectedPlatforms.map(p => (
+              {searchQuery && (
+                <span style={styles.filterTag}>
+                  Search: {searchQuery}
+                  <button onClick={() => setSearchQuery('')} style={styles.removeTag}><Icons.X /></button>
+                </span>
+              )}
+              {pricePreset && (
+                <span style={styles.filterTag}>
+                  {pricePresets.find(p => p.value === pricePreset)?.label}
+                  <button onClick={() => setPricePreset(undefined)} style={styles.removeTag}><Icons.X /></button>
+                </span>
+              )}
+              {selectedPlatforms.map(p => {
+                const platform = filterOptions.platforms.find(pl => pl.slug === p);
+                return (
+                  <span key={p} style={styles.filterTag}>
+                    {platform?.name || p}
+                    <button onClick={() => togglePlatform(p)} style={styles.removeTag}><Icons.X /></button>
+                  </span>
+                );
+              })}
+              {selectedGenres.map(g => {
+                const genre = filterOptions.genres.find(gen => gen.slug === g);
+                return (
+                  <span key={g} style={styles.filterTag}>
+                    {genre?.name || g}
+                    <button onClick={() => toggleGenre(g)} style={styles.removeTag}><Icons.X /></button>
+                  </span>
+                );
+              })}
+              {selectedActivationServices.map(s => (
+                <span key={s} style={styles.filterTag}>
+                  {s}
+                  <button onClick={() => setSelectedActivationServices(prev => prev.filter(x => x !== s))} style={styles.removeTag}><Icons.X /></button>
+                </span>
+              ))}
+              {selectedRegions.map(r => (
+                <span key={r} style={styles.filterTag}>
+                  {r}
+                  <button onClick={() => setSelectedRegions(prev => prev.filter(x => x !== r))} style={styles.removeTag}><Icons.X /></button>
+                </span>
+              ))}
+              {selectedPublishers.map(p => (
                 <span key={p} style={styles.filterTag}>
                   {p}
-                  <button onClick={() => togglePlatform(p)} style={styles.removeTag}><Icons.X /></button>
+                  <button onClick={() => setSelectedPublishers(prev => prev.filter(x => x !== p))} style={styles.removeTag}><Icons.X /></button>
                 </span>
               ))}
-              {selectedGenres.map(g => (
-                <span key={g} style={styles.filterTag}>
-                  {g}
-                  <button onClick={() => toggleGenre(g)} style={styles.removeTag}><Icons.X /></button>
+              {multiplayer !== undefined && (
+                <span style={styles.filterTag}>
+                  {multiplayer ? 'Multiplayer' : 'Single Player'}
+                  <button onClick={() => setMultiplayer(undefined)} style={styles.removeTag}><Icons.X /></button>
                 </span>
-              ))}
+              )}
+            </div>
+          )}
+
+          {/* Collections Carousel */}
+          {collections.length > 0 && (
+            <div style={{ marginBottom: '48px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '24px' }}>Collections</h2>
+              <div style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '10px' }}>
+                {collections.map((collection) => (
+                  <div key={collection.id} style={{ minWidth: '280px', background: theme.colors.surface, borderRadius: '12px', padding: '16px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>{collection.title}</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '12px' }}>
+                      {collection.games.slice(0, 4).map((game) => (
+                        <Link key={game.id} to={`/game/${game.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                          <div style={{ position: 'relative', aspectRatio: '3/4', borderRadius: '8px', overflow: 'hidden' }}>
+                            <img src={game.image} alt={game.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                    <Link 
+                      to={`/catalog?${collection.type === 'genre' ? `genres=${collection.value}` : `publishers=${collection.value}`}`}
+                      style={{ 
+                        display: 'inline-block', 
+                        color: theme.colors.primary, 
+                        fontSize: '14px', 
+                        fontWeight: '600',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      Check all →
+                    </Link>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -327,105 +604,135 @@ export default function CatalogPage() {
               <Icons.Filter /> Filters {activeFiltersCount > 0 && `(${activeFiltersCount})`}
             </button>
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={styles.sortSelect}>
-              {sortOptions.map(option => (
-                <option key={option} value={option}>{option}</option>
-              ))}
+              <option value="popular">Popular</option>
+              <option value="newest">Newest</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="price-asc">Price: Low to High</option>
             </select>
           </div>
+
+          {/* Mobile Filter Sidebar (overlay) */}
+          <aside 
+            style={styles.filterSidebar} 
+            className={`filter-sidebar-mobile ${showMobileFilters ? 'mobile-open' : ''}`}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: '700' }}>Filters</h2>
+              <button onClick={() => setShowMobileFilters(false)} style={styles.iconButton}>
+                <Icons.X />
+              </button>
+            </div>
+            <FilterContent />
+            <button 
+              onClick={() => setShowMobileFilters(false)}
+              style={{ ...styles.loginButton, width: '100%', marginTop: '20px' }}
+            >
+              Apply Filters
+            </button>
+          </aside>
 
           {/* Catalog Layout */}
           <div className="catalog-layout">
             {/* Desktop Filter Sidebar */}
-            <aside style={styles.filterSidebar} className="filter-sidebar">
+            <aside style={styles.filterSidebar} className="filter-sidebar-desktop">
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '20px' }}>Filters</h3>
               <FilterContent />
             </aside>
 
-            {/* Mobile Filter Sidebar */}
-            <aside 
-              style={styles.filterSidebar} 
-              className={`filter-sidebar ${showMobileFilters ? 'mobile-open' : ''}`}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: '700' }}>Filters</h2>
-                <button onClick={() => setShowMobileFilters(false)} style={styles.iconButton}>
-                  <Icons.X />
-                </button>
-              </div>
-              <FilterContent />
-              <button 
-                onClick={() => setShowMobileFilters(false)}
-                style={{ ...styles.loginButton, width: '100%', marginTop: '20px' }}
-              >
-                Apply Filters
-              </button>
-            </aside>
-
             {/* Games Grid */}
             <div className="games-grid">
-              {games.map(game => (
-                <GameCard
-                  key={game.id}
-                  game={game}
-                  onWishlist={toggleWishlist}
-                  isWishlisted={wishlist.includes(game.id)}
-                />
-              ))}
+              {loading ? (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: theme.colors.textSecondary }}>
+                  Loading games...
+                </div>
+              ) : games.length > 0 ? (
+                games.map(game => (
+                  <Link key={game.id} to={`/game/${game.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <GameCard
+                      game={game}
+                      onWishlist={toggleWishlist}
+                      isWishlisted={wishlist.includes(game.id)}
+                    />
+                  </Link>
+                ))
+              ) : (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: theme.colors.textSecondary }}>
+                  No games found
+                </div>
+              )}
             </div>
           </div>
 
           {/* Pagination */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '40px' }}>
-            {[1, 2, 3, 4, 5].map(page => (
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '40px' }}>
               <button
-                key={page}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
                 style={{
                   width: '40px',
                   height: '40px',
                   borderRadius: '8px',
                   border: 'none',
-                  background: page === 1 ? theme.colors.primary : theme.colors.surface,
-                  color: page === 1 ? '#000' : theme.colors.text,
+                  background: theme.colors.surface,
+                  color: theme.colors.text,
                   fontWeight: '600',
-                  cursor: 'pointer',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === 1 ? 0.5 : 1,
                 }}
               >
-                {page}
+                ‹
               </button>
-            ))}
-          </div>
-        </main>
-
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerTop}>
-            <a href="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </a>
-            <nav style={styles.footerNav}>
-              <a href="/catalog" style={styles.footerLink}>Catalog</a>
-              <a href="/new" style={styles.footerLink}>New</a>
-              <a href="/media" style={styles.footerLink}>Media</a>
-              <a href="/contacts" style={styles.footerLink}>Contacts</a>
-              <a href="/support" style={styles.footerLink}>Support</a>
-            </nav>
-            <div style={styles.footerSocial}>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Telegram /></a>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Instagram /></a>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let page;
+                if (totalPages <= 5) {
+                  page = i + 1;
+                } else if (currentPage <= 3) {
+                  page = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  page = totalPages - 4 + i;
+                } else {
+                  page = currentPage - 2 + i;
+                }
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: page === currentPage ? theme.colors.primary : theme.colors.surface,
+                      color: page === currentPage ? '#000' : theme.colors.text,
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: theme.colors.surface,
+                  color: theme.colors.text,
+                  fontWeight: '600',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === totalPages ? 0.5 : 1,
+                }}
+              >
+                ›
+              </button>
             </div>
-          </div>
-          <div style={{ ...styles.footerNav, justifyContent: 'center', marginBottom: '24px' }}>
-            <a href="/terms" style={styles.footerLink}>User Agreement</a>
-            <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
-          </div>
-          <div style={styles.footerBottom}>
-            <p style={styles.copyright}>
-              © 2025 GKEYS. All rights reserved. Copying any materials from the site is prohibited!<br />
-              All product and game names, company names and brands, logos, trademarks, and other materials are the property of their respective owners.
-            </p>
-          </div>
-        </footer>
-      </div>
+          )}
+        </main>
     </>
   );
 }

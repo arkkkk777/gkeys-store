@@ -1,8 +1,10 @@
 import prisma from '../config/database';
-import { hashPassword } from '../utils/bcrypt';
+import { hashPassword, comparePassword } from '../utils/bcrypt';
 import {
   UserProfileResponse,
   UpdateProfileRequest,
+  ChangePasswordRequest,
+  UserStatsResponse,
   BalanceResponse,
   TransactionResponse,
   WishlistResponse,
@@ -74,7 +76,12 @@ export const updateUserProfile = async (
   userId: string,
   data: UpdateProfileRequest
 ): Promise<UserProfileResponse> => {
-  const updateData: any = {};
+  const updateData: {
+    nickname?: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    passwordHash?: string;
+  } = {};
 
   if (data.nickname !== undefined) {
     updateData.nickname = data.nickname || 'Newbie Guy';
@@ -89,7 +96,7 @@ export const updateUserProfile = async (
     updateData.passwordHash = await hashPassword(data.password);
   }
 
-  const user = await prisma.user.update({
+  await prisma.user.update({
     where: { id: userId },
     data: updateData,
   });
@@ -202,5 +209,79 @@ export const removeFromWishlist = async (userId: string, gameId: string): Promis
       gameId,
     },
   });
+};
+
+export const changeUserPassword = async (
+  userId: string,
+  data: ChangePasswordRequest
+): Promise<void> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { passwordHash: true },
+  });
+
+  if (!user) {
+    const error: AppError = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // Verify current password
+  const isValid = await comparePassword(data.currentPassword, user.passwordHash);
+  if (!isValid) {
+    throw new Error('Current password is incorrect');
+  }
+
+  // Hash and update new password
+  const newPasswordHash = await hashPassword(data.newPassword);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash: newPasswordHash },
+  });
+};
+
+export const getUserStats = async (userId: string): Promise<UserStatsResponse> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      orders: {
+        where: { status: 'COMPLETED' },
+        include: {
+          items: true,
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    const error: AppError = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // Calculate stats
+  const totalGames = user.orders.reduce(
+    (sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
+    0
+  );
+
+  const totalSaved = user.orders.reduce(
+    (sum, order) => sum + Number(order.discount),
+    0
+  );
+
+  const daysSinceRegistration = Math.floor(
+    (Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  const totalOrders = user.orders.length;
+
+  return {
+    totalGames,
+    totalSaved,
+    daysSinceRegistration,
+    totalOrders,
+    balance: Number(user.balance),
+  };
 };
 

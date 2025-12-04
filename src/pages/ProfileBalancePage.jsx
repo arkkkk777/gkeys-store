@@ -1,7 +1,8 @@
 // Profile Balance Page - GKEYS Gaming Store
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icons } from '../components/UIKit';
+import { useAuth } from '../context/AuthContext';
 
 const theme = {
   colors: {
@@ -20,12 +21,18 @@ const theme = {
 };
 
 const sidebarItems = [
-  { id: 'profile', label: 'Profile' },
-  { id: 'orders', label: 'Orders' },
-  { id: 'wishlist', label: 'Wishlist' },
-  { id: 'balance', label: 'Balance' },
-  { id: 'edit-profile', label: 'Edit Profile', badge: '+5' },
+  { id: 'orders', label: 'Orders', path: '/profile/orders' },
+  { id: 'wishlist', label: 'Wishlist', path: '/wishlist' },
+  { id: 'balance', label: 'Balance', path: '/profile/balance' },
+  { id: 'edit-profile', label: 'Edit Profile', path: '/profile/edit' },
 ];
+
+// Mock user stats
+const userStats = {
+  totalGames: 24,
+  totalSaved: 156.50,
+  daysSinceRegistration: 127,
+};
 
 const paymentMethods = [
   { id: 'trustly', label: 'Trustly' },
@@ -40,8 +47,10 @@ const responsiveCSS = `
     .desktop-search { display: none !important; }
     .desktop-login { display: none !important; }
     .profile-layout { flex-direction: column !important; }
-    .profile-sidebar { width: 100% !important; flex-direction: row !important; overflow-x: auto !important; gap: 8px !important; padding-bottom: 16px !important; }
-    .sidebar-item { white-space: nowrap !important; }
+    .profile-sidebar { width: 100% !important; flex-direction: column !important; gap: 8px !important; padding-bottom: 16px !important; }
+    .sidebar-nav { display: flex !important; flex-direction: row !important; overflow-x: auto !important; gap: 8px !important; }
+    .sidebar-item { white-space: nowrap !important; padding: 10px 16px !important; }
+    .user-stats { display: none !important; }
     .balance-content { flex-direction: column !important; }
     .user-info { margin-bottom: 24px !important; }
   }
@@ -182,6 +191,40 @@ export default function ProfileBalancePage() {
       textAlign: 'left',
       cursor: 'pointer',
       marginTop: '16px',
+    },
+    userStatsCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: '12px',
+      padding: '20px',
+      marginBottom: '24px',
+    },
+    userName: {
+      fontSize: '18px',
+      fontWeight: '600',
+      marginBottom: '16px',
+    },
+    statsGrid: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
+    },
+    statItem: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    statLabel: {
+      fontSize: '13px',
+      color: theme.colors.textSecondary,
+    },
+    statValue: {
+      fontSize: '14px',
+      fontWeight: '600',
+    },
+    statValuePrimary: {
+      fontSize: '14px',
+      fontWeight: '600',
+      color: theme.colors.primary,
     },
     content: {
       flex: 1,
@@ -359,60 +402,43 @@ export default function ProfileBalancePage() {
   return (
     <>
       <style>{responsiveCSS}</style>
-      <div style={styles.app}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '48px' }}>
-            <Link to="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </Link>
-            <nav style={styles.nav} className="desktop-nav">
-              <a href="/catalog" style={styles.navLink}>
-                <Icons.Grid /> Catalog
-              </a>
-              <a href="/media" style={styles.navLink}>
-                <Icons.Media /> Media
-              </a>
-            </nav>
-          </div>
-          <div style={styles.rightSection}>
-            <button style={styles.iconButton}><Icons.Heart /></button>
-            <button style={styles.iconButton}><Icons.Cart /></button>
-            <button style={styles.searchButton} className="desktop-search">
-              <Icons.Search /> Search
-            </button>
-            <button style={styles.loginButton} className="desktop-login">Log in</button>
-          </div>
-        </header>
-
-        {/* Main Content */}
+      {/* Main Content */}
         <main style={styles.main}>
           <div style={styles.profileLayout} className="profile-layout">
             {/* Sidebar */}
             <aside style={styles.sidebar} className="profile-sidebar">
-              {sidebarItems.map((item) => (
-                item.id === 'orders' ? (
+              {/* User Stats Card */}
+              <div style={styles.userStatsCard} className="user-stats">
+                <h3 style={styles.userName}>Newbie Guy</h3>
+                <div style={styles.statsGrid}>
+                  <div style={styles.statItem}>
+                    <span style={styles.statLabel}>Games Purchased</span>
+                    <span style={styles.statValue}>{userStats.totalGames}</span>
+                  </div>
+                  <div style={styles.statItem}>
+                    <span style={styles.statLabel}>Total Saved</span>
+                    <span style={styles.statValuePrimary}>€{userStats.totalSaved.toFixed(2)}</span>
+                  </div>
+                  <div style={styles.statItem}>
+                    <span style={styles.statLabel}>Member for</span>
+                    <span style={styles.statValue}>{userStats.daysSinceRegistration} days</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Navigation */}
+              <div className="sidebar-nav">
+                {sidebarItems.map((item) => (
                   <Link
                     key={item.id}
-                    to="/profile/orders"
+                    to={item.path}
                     style={styles.sidebarItem(activeTab === item.id)}
                     className="sidebar-item"
                   >
                     {item.label}
-                    {item.badge && <span style={styles.sidebarBadge}>{item.badge}</span>}
                   </Link>
-                ) : (
-                  <button
-                    key={item.id}
-                    style={styles.sidebarItem(activeTab === item.id)}
-                    onClick={() => setActiveTab(item.id)}
-                    className="sidebar-item"
-                  >
-                    {item.label}
-                    {item.badge && <span style={styles.sidebarBadge}>{item.badge}</span>}
-                  </button>
-                )
-              ))}
+                ))}
+              </div>
               <button style={styles.logoutButton}>Log Out</button>
             </aside>
 
@@ -476,39 +502,6 @@ export default function ProfileBalancePage() {
             </div>
           </div>
         </main>
-
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerTop}>
-            <Link to="/" style={styles.logo}>
-              <span style={{ color: theme.colors.primary }}>G</span>KEYS
-            </Link>
-            <nav style={styles.footerNav}>
-              <a href="/catalog" style={styles.footerLink}>Catalog</a>
-              <a href="/new" style={styles.footerLink}>New</a>
-              <a href="/media" style={styles.footerLink}>Media</a>
-              <a href="/contacts" style={styles.footerLink}>Contacts</a>
-              <a href="/support" style={styles.footerLink}>Support</a>
-            </nav>
-            <div style={styles.footerSocial}>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Telegram /></a>
-              <a href="#" style={{ color: theme.colors.text }}><Icons.Instagram /></a>
-            </div>
-          </div>
-          <div style={{ ...styles.footerNav, justifyContent: 'center', marginBottom: '24px' }}>
-            <a href="/terms" style={styles.footerLink}>User Agreement</a>
-            <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
-          </div>
-          <div style={styles.footerBottom}>
-            <p style={styles.copyright}>
-              © 2025 GKEYS. All rights reserved. Copying any materials from the site is prohibited!<br />
-              All product and game names, company names and brands, logos, trademarks, and other materials are the property of their respective owners.<br />
-              Only licensed keys for all gaming platforms: Steam, Uplay, Battle.net, Origin, and others.<br />
-              All keys sold are purchased from official distributors and directly from publishers.
-            </p>
-          </div>
-        </footer>
-      </div>
     </>
   );
 }

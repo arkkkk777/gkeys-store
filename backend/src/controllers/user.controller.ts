@@ -3,13 +3,15 @@ import { AuthRequest } from '../middleware/auth';
 import {
   getUserProfile,
   updateUserProfile,
+  changeUserPassword,
+  getUserStats,
   getUserBalance,
   getUserTransactions,
   getUserWishlist,
   addToWishlist,
   removeFromWishlist,
 } from '../services/user.service';
-import { UpdateProfileRequest } from '../types/user';
+import { UpdateProfileRequest, ChangePasswordRequest } from '../types/user';
 
 export const getProfileController = async (
   req: AuthRequest,
@@ -176,6 +178,76 @@ export const removeFromWishlistController = async (
     res.status(200).json({
       success: true,
       message: 'Game removed from wishlist',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const changePasswordController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Unauthorized' },
+      });
+    }
+
+    const data: ChangePasswordRequest = req.body;
+    
+    if (!data.currentPassword || !data.newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Current password and new password are required' },
+      });
+    }
+
+    if (data.newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'New password must be at least 8 characters' },
+      });
+    }
+
+    await changeUserPassword(req.user.userId, data);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully',
+    });
+  } catch (error: any) {
+    if (error.message === 'Current password is incorrect') {
+      return res.status(400).json({
+        success: false,
+        error: { message: error.message },
+      });
+    }
+    next(error);
+  }
+};
+
+export const getUserStatsController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Unauthorized' },
+      });
+    }
+
+    const stats = await getUserStats(req.user.userId);
+
+    res.status(200).json({
+      success: true,
+      data: stats,
     });
   } catch (error) {
     next(error);
