@@ -1,6 +1,8 @@
 // Wishlist Page - GKEYS Gaming Store
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Icons } from '../components/UIKit';
+import { useAuth } from '../context/AuthContext';
 import { gamesApi } from '../services/gamesApi';
 
 const theme = {
@@ -13,61 +15,93 @@ const theme = {
     textSecondary: '#999999',
     textMuted: '#666666',
     border: '#333333',
-    discount: '#FF4444',
     error: '#FF4444',
   },
+  spacing: { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px' },
+  borderRadius: { sm: '4px', md: '8px', lg: '12px', xl: '16px', full: '9999px' },
 };
 
-const Icons = {
-  Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,
-  Heart: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
-  Cart: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>,
-  Grid: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
-  Media: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
-  Trash: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
-  X: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  Telegram: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>,
-  Instagram: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>,
-};
-
-const initialWishlist = [
-  { id: 1, title: 'Cyberpunk 2077', price: 59.99, originalPrice: 69.99, discount: 14, image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=300&h=400&fit=crop', platform: 'PC', genre: 'RPG', addedAt: '2025-01-15' },
-  { id: 2, title: 'Elden Ring', price: 49.99, originalPrice: null, discount: 0, image: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=300&h=400&fit=crop', platform: 'PC', genre: 'Action', addedAt: '2025-01-14' },
-  { id: 3, title: 'Red Dead Redemption 2', price: 39.99, originalPrice: 59.99, discount: 33, image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=300&h=400&fit=crop', platform: 'PC', genre: 'Action', addedAt: '2025-01-10' },
-  { id: 4, title: 'GTA V', price: 29.99, originalPrice: 39.99, discount: 25, image: 'https://images.unsplash.com/photo-1552820728-8b83bb6b2b0d?w=300&h=400&fit=crop', platform: 'PC', genre: 'Action', addedAt: '2025-01-08' },
-  { id: 5, title: 'The Witcher 3', price: 19.99, originalPrice: 39.99, discount: 50, image: 'https://images.unsplash.com/photo-1493711662062-fa541f7f3d24?w=300&h=400&fit=crop', platform: 'PC', genre: 'RPG', addedAt: '2025-01-05' },
-  { id: 6, title: 'Hogwarts Legacy', price: 54.99, originalPrice: null, discount: 0, image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&h=400&fit=crop', platform: 'PC', genre: 'RPG', addedAt: '2025-01-02' },
+const sidebarItems = [
+  { id: 'orders', label: 'Orders', path: '/profile/orders' },
+  { id: 'wishlist', label: 'Wishlist', path: '/wishlist' },
+  { id: 'balance', label: 'Balance', path: '/profile/balance' },
+  { id: 'edit-profile', label: 'Edit Profile', path: '/profile/edit' },
 ];
 
-export default function WishlistPage() {
-  const [wishlist, setWishlist] = useState(initialWishlist);
-  const [notification, setNotification] = useState(null);
-  const [randomGames, setRandomGames] = useState([]);
+// Mock user stats
+const userStats = {
+  totalGames: 24,
+  totalSaved: 156.50,
+  daysSinceRegistration: 127,
+};
 
-  // Load random games on mount
+const responsiveCSS = `
+  @media (max-width: 768px) {
+    .desktop-nav { display: none !important; }
+    .desktop-search { display: none !important; }
+    .desktop-login { display: none !important; }
+    .profile-layout { flex-direction: column !important; }
+    .profile-sidebar { width: 100% !important; flex-direction: column !important; gap: 8px !important; padding-bottom: 16px !important; }
+    .sidebar-nav { display: flex !important; flex-direction: row !important; overflow-x: auto !important; gap: 8px !important; }
+    .sidebar-item { white-space: nowrap !important; padding: 10px 16px !important; }
+    .user-stats { display: none !important; }
+    .wishlist-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+    .random-games-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+  }
+  @media (max-width: 480px) {
+    .wishlist-grid { grid-template-columns: 1fr !important; }
+    .random-games-grid { grid-template-columns: 1fr !important; }
+  }
+`;
+
+export default function WishlistPage() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [wishlist, setWishlist] = useState([]);
+  const [randomGames, setRandomGames] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [notification, setNotification] = useState(null);
+
   useEffect(() => {
+    const loadWishlist = async () => {
+      try {
+        setLoading(true);
+        // Load wishlist from API
+        const games = await gamesApi.getWishlist();
+        setWishlist(games);
+      } catch (error) {
+        console.error('Failed to load wishlist:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const loadRandomGames = async () => {
       try {
-        const games = await gamesApi.getRandomGames(8);
+        const games = await gamesApi.getRandomGames(6);
         setRandomGames(games);
       } catch (error) {
         console.error('Failed to load random games:', error);
       }
     };
+
+    loadWishlist();
     loadRandomGames();
   }, []);
 
-  const removeFromWishlist = (id) => {
-    setWishlist(items => items.filter(item => item.id !== id));
-    showNotification('Removed from wishlist');
+  const removeFromWishlist = async (gameId) => {
+    try {
+      await gamesApi.removeFromWishlist(gameId);
+      setWishlist(items => items.filter(item => item.id !== gameId));
+      showNotification('Removed from wishlist');
+    } catch (error) {
+      console.error('Failed to remove from wishlist:', error);
+      showNotification('Failed to remove item');
+    }
   };
 
   const addToCart = (game) => {
     showNotification(`${game.title} added to cart`);
-  };
-
-  const addAllToCart = () => {
-    showNotification(`${wishlist.length} items added to cart`);
   };
 
   const showNotification = (message) => {
@@ -75,223 +109,597 @@ export default function WishlistPage() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const totalValue = wishlist.reduce((sum, item) => sum + item.price, 0);
-  const totalSavings = wishlist.reduce((sum, item) => sum + (item.originalPrice ? item.originalPrice - item.price : 0), 0);
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
-  const responsiveCSS = `
-    .wishlist-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-    .wishlist-stats { display: flex; gap: 32px; margin-bottom: 32px; }
-    .random-games-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-    @media (max-width: 1024px) {
-      .wishlist-grid { grid-template-columns: repeat(3, 1fr); }
-      .random-games-grid { grid-template-columns: repeat(3, 1fr); }
+  const totalValue = wishlist.reduce((sum, item) => sum + (item.price || 0), 0);
+  const totalSavings = wishlist.reduce((sum, item) => {
+    if (item.originalPrice && item.originalPrice > item.price) {
+      return sum + (item.originalPrice - item.price);
     }
-    @media (max-width: 768px) {
-      .wishlist-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-      .random-games-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-      .wishlist-stats { flex-direction: column; gap: 16px; }
-      .desktop-nav, .desktop-search, .desktop-login { display: none; }
-    }
-    @media (max-width: 480px) {
-      .wishlist-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .random-games-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    }
-  `;
+    return sum;
+  }, 0);
 
   const styles = {
-    app: { minHeight: '100vh', background: theme.colors.background, color: theme.colors.text },
-    header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: `1px solid ${theme.colors.border}`, position: 'sticky', top: 0, background: theme.colors.background, zIndex: 100 },
-    logo: { fontSize: '24px', fontWeight: '800', textDecoration: 'none', color: theme.colors.text },
-    nav: { display: 'flex', gap: '24px' },
-    navLink: { display: 'flex', alignItems: 'center', gap: '6px', color: theme.colors.textSecondary, textDecoration: 'none', fontSize: '14px', fontWeight: '500' },
-    rightSection: { display: 'flex', alignItems: 'center', gap: '16px' },
-    iconButton: { background: 'none', border: 'none', color: theme.colors.text, cursor: 'pointer', padding: '8px' },
-    searchButton: { display: 'flex', alignItems: 'center', gap: '8px', background: theme.colors.surface, border: 'none', color: theme.colors.textSecondary, padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' },
-    loginButton: { background: theme.colors.primary, color: '#000', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' },
-    main: { maxWidth: '1400px', margin: '0 auto', padding: '32px 24px' },
-    pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' },
-    pageTitle: { fontSize: '28px', fontWeight: '700' },
-    addAllBtn: { background: theme.colors.primary, color: '#000', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' },
-    itemCount: { color: theme.colors.textMuted, fontSize: '14px', marginBottom: '24px' },
-    statsCard: { background: theme.colors.surface, borderRadius: '12px', padding: '20px', flex: 1, minWidth: '200px' },
-    statsLabel: { color: theme.colors.textMuted, fontSize: '13px', marginBottom: '4px' },
-    statsValue: { fontSize: '24px', fontWeight: '700' },
-    statsSavings: { color: theme.colors.primary },
-    gameCard: { background: theme.colors.surface, borderRadius: '12px', overflow: 'hidden', position: 'relative' },
-    gameImage: { width: '100%', aspectRatio: '3/4', objectFit: 'cover' },
-    removeBtn: { position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: theme.colors.text, transition: 'all 0.2s' },
-    discountBadge: { position: 'absolute', top: '8px', left: '8px', background: theme.colors.discount, color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' },
-    gameInfo: { padding: '12px' },
-    gameMeta: { fontSize: '11px', color: theme.colors.textMuted, marginBottom: '4px' },
-    gameTitle: { fontSize: '14px', fontWeight: '500', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-    priceRow: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' },
-    gamePrice: { fontSize: '16px', fontWeight: '700', color: theme.colors.primary },
-    originalPrice: { fontSize: '13px', color: theme.colors.textMuted, textDecoration: 'line-through' },
-    addToCartBtn: { width: '100%', background: theme.colors.surfaceLight, border: 'none', padding: '10px', borderRadius: '6px', color: theme.colors.text, fontSize: '13px', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' },
-    emptyWishlist: { textAlign: 'center', padding: '80px 20px' },
-    emptyIcon: { fontSize: '80px', marginBottom: '24px', opacity: 0.3 },
-    emptyTitle: { fontSize: '24px', fontWeight: '600', marginBottom: '8px' },
-    emptyText: { color: theme.colors.textMuted, marginBottom: '32px', maxWidth: '400px', margin: '0 auto 32px' },
-    browseBtn: { background: theme.colors.primary, color: '#000', border: 'none', padding: '14px 32px', borderRadius: '10px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
-    notification: { position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, padding: '16px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: '500', zIndex: 1000, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' },
-    randomSection: { marginTop: '64px', paddingTop: '48px', borderTop: `1px solid ${theme.colors.border}` },
-    randomTitle: { fontSize: '24px', fontWeight: '700', marginBottom: '24px' },
-    randomCard: { background: theme.colors.surface, borderRadius: '12px', overflow: 'hidden', transition: 'transform 0.2s ease' },
-    randomImage: { width: '100%', aspectRatio: '3/4', objectFit: 'cover' },
-    randomInfo: { padding: '12px' },
-    randomGameTitle: { fontSize: '14px', fontWeight: '500', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: theme.colors.text },
-    randomPrice: { fontSize: '16px', fontWeight: '700', color: theme.colors.primary },
-    randomOriginalPrice: { fontSize: '12px', color: theme.colors.textMuted, textDecoration: 'line-through', marginLeft: '8px' },
-    footer: { borderTop: `1px solid ${theme.colors.border}`, padding: '48px 24px', marginTop: '64px' },
-    footerTop: { display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '24px', marginBottom: '32px', maxWidth: '1280px', margin: '0 auto 32px' },
-    footerNav: { display: 'flex', flexWrap: 'wrap', gap: '24px' },
-    footerLink: { color: theme.colors.textSecondary, textDecoration: 'none', fontSize: '14px' },
-    footerSocial: { display: 'flex', gap: '16px' },
-    footerBottom: { textAlign: 'center', paddingTop: '32px', borderTop: `1px solid ${theme.colors.border}`, maxWidth: '1280px', margin: '0 auto' },
-    copyright: { color: theme.colors.textMuted, fontSize: '12px', lineHeight: '1.8' },
+    app: {
+      minHeight: '100vh',
+      backgroundColor: theme.colors.background,
+      color: theme.colors.text,
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      display: 'flex',
+      flexDirection: 'column',
+    },
+    main: {
+      flex: 1,
+      padding: '48px 24px',
+      maxWidth: '1280px',
+      margin: '0 auto',
+      width: '100%',
+    },
+    profileLayout: {
+      display: 'flex',
+      gap: '48px',
+    },
+    sidebar: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4px',
+      minWidth: '220px',
+    },
+    sidebarItem: (isActive) => ({
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '16px 24px',
+      backgroundColor: isActive ? theme.colors.surface : 'transparent',
+      borderRadius: '8px',
+      color: isActive ? theme.colors.text : theme.colors.textSecondary,
+      fontSize: '16px',
+      border: 'none',
+      cursor: 'pointer',
+      textAlign: 'left',
+      transition: 'all 0.2s ease',
+      textDecoration: 'none',
+    }),
+    sidebarBadge: {
+      backgroundColor: theme.colors.primary,
+      color: '#000',
+      padding: '2px 8px',
+      borderRadius: '50px',
+      fontSize: '12px',
+      fontWeight: '600',
+    },
+    logoutButton: {
+      padding: '16px 24px',
+      backgroundColor: 'transparent',
+      border: 'none',
+      color: theme.colors.error,
+      fontSize: '16px',
+      textAlign: 'left',
+      cursor: 'pointer',
+      marginTop: '16px',
+    },
+    userStatsCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: '12px',
+      padding: '20px',
+      marginBottom: '24px',
+    },
+    userName: {
+      fontSize: '18px',
+      fontWeight: '600',
+      marginBottom: '16px',
+    },
+    statsGrid: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
+    },
+    statItem: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    statLabel: {
+      fontSize: '13px',
+      color: theme.colors.textSecondary,
+    },
+    statValue: {
+      fontSize: '14px',
+      fontWeight: '600',
+    },
+    statValuePrimary: {
+      fontSize: '14px',
+      fontWeight: '600',
+      color: theme.colors.primary,
+    },
+    content: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '24px',
+    },
+    pageHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '24px',
+    },
+    pageTitle: {
+      fontSize: '28px',
+      fontWeight: '700',
+    },
+    addAllButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '12px 24px',
+      backgroundColor: theme.colors.primary,
+      color: '#000',
+      border: 'none',
+      borderRadius: '8px',
+      fontSize: '14px',
+      fontWeight: '600',
+      cursor: 'pointer',
+    },
+    wishlistGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4, 1fr)',
+      gap: '20px',
+    },
+    gameCard: {
+      backgroundColor: theme.colors.surfaceLight,
+      borderRadius: '16px',
+      overflow: 'hidden',
+      position: 'relative',
+      transition: 'transform 0.2s ease',
+    },
+    gameImage: {
+      width: '100%',
+      aspectRatio: '3/4',
+      objectFit: 'cover',
+    },
+    removeButton: {
+      position: 'absolute',
+      top: '12px',
+      right: '12px',
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      border: 'none',
+      borderRadius: '50%',
+      width: '36px',
+      height: '36px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      color: theme.colors.text,
+      transition: 'all 0.2s',
+      zIndex: 10,
+    },
+    discountBadge: {
+      position: 'absolute',
+      top: '12px',
+      left: '12px',
+      backgroundColor: theme.colors.error,
+      color: '#fff',
+      padding: '4px 8px',
+      borderRadius: '4px',
+      fontSize: '12px',
+      fontWeight: '600',
+      zIndex: 10,
+    },
+    bestSellerBadge: {
+      position: 'absolute',
+      top: '12px',
+      left: '12px',
+      backgroundColor: theme.colors.primary,
+      color: '#000',
+      padding: '4px 8px',
+      borderRadius: '4px',
+      fontSize: '12px',
+      fontWeight: '600',
+      zIndex: 10,
+    },
+    gameInfo: {
+      padding: '16px',
+    },
+    gameTitle: {
+      fontSize: '16px',
+      fontWeight: '600',
+      marginBottom: '8px',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    },
+    gameMeta: {
+      fontSize: '12px',
+      color: theme.colors.textSecondary,
+      marginBottom: '12px',
+    },
+    priceRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      marginBottom: '12px',
+    },
+    gamePrice: {
+      fontSize: '18px',
+      fontWeight: '700',
+      color: theme.colors.primary,
+    },
+    originalPrice: {
+      fontSize: '14px',
+      color: theme.colors.textMuted,
+      textDecoration: 'line-through',
+    },
+    addToCartButton: {
+      width: '100%',
+      padding: '12px',
+      backgroundColor: theme.colors.surface,
+      border: 'none',
+      borderRadius: '8px',
+      color: theme.colors.text,
+      fontSize: '14px',
+      fontWeight: '500',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      transition: 'background-color 0.2s ease',
+    },
+    emptyState: {
+      textAlign: 'center',
+      padding: '80px 20px',
+      backgroundColor: theme.colors.surface,
+      borderRadius: '16px',
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    emptyBackground: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      opacity: 0.1,
+      backgroundImage: 'url(https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1920&h=1080&fit=crop)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    },
+    emptyContent: {
+      position: 'relative',
+      zIndex: 1,
+    },
+    emptyIcon: {
+      fontSize: '64px',
+      marginBottom: '24px',
+    },
+    emptyTitle: {
+      fontSize: '28px',
+      fontWeight: '700',
+      marginBottom: '12px',
+    },
+    emptyText: {
+      color: theme.colors.textSecondary,
+      marginBottom: '32px',
+      maxWidth: '400px',
+      margin: '0 auto 32px',
+      fontSize: '16px',
+      lineHeight: '1.6',
+    },
+    browseButton: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '14px 32px',
+      backgroundColor: theme.colors.primary,
+      color: '#000',
+      border: 'none',
+      borderRadius: '10px',
+      fontSize: '15px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      textDecoration: 'none',
+    },
+    randomSection: {
+      marginTop: '48px',
+      paddingTop: '48px',
+      borderTop: `1px solid ${theme.colors.border}`,
+    },
+    randomTitle: {
+      fontSize: '24px',
+      fontWeight: '700',
+      marginBottom: '24px',
+    },
+    randomGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: '20px',
+    },
+    randomCard: {
+      backgroundColor: theme.colors.surfaceLight,
+      borderRadius: '12px',
+      overflow: 'hidden',
+      transition: 'transform 0.2s ease',
+      textDecoration: 'none',
+      color: 'inherit',
+    },
+    randomImage: {
+      width: '100%',
+      aspectRatio: '3/4',
+      objectFit: 'cover',
+    },
+    randomInfo: {
+      padding: '12px',
+    },
+    randomGameTitle: {
+      fontSize: '14px',
+      fontWeight: '500',
+      marginBottom: '8px',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    },
+    randomPriceRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+    },
+    randomPrice: {
+      fontSize: '16px',
+      fontWeight: '700',
+      color: theme.colors.primary,
+    },
+    randomOriginalPrice: {
+      fontSize: '12px',
+      color: theme.colors.textMuted,
+      textDecoration: 'line-through',
+    },
+    notification: {
+      position: 'fixed',
+      bottom: '24px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: theme.colors.surface,
+      border: `1px solid ${theme.colors.border}`,
+      padding: '16px 24px',
+      borderRadius: '10px',
+      fontSize: '14px',
+      fontWeight: '500',
+      zIndex: 1000,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+    },
   };
+
+  if (loading) {
+    return (
+      <div style={styles.app}>
+        <main style={styles.main}>
+          <div style={{ textAlign: 'center', padding: '48px', color: theme.colors.textSecondary }}>
+            Loading wishlist...
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <>
       <style>{responsiveCSS}</style>
-      {/* Notification */}
       {notification && <div style={styles.notification}>{notification}</div>}
-
-      {/* Main Content */}
+      
       <main style={styles.main}>
-          {wishlist.length > 0 ? (
-            <>
-              <div style={styles.pageHeader}>
-                <h1 style={styles.pageTitle}>Wishlist</h1>
-                <button onClick={addAllToCart} style={styles.addAllBtn}>
-                  <Icons.Cart /> Add All to Cart
-                </button>
-              </div>
-              <p style={styles.itemCount}>{wishlist.length} {wishlist.length === 1 ? 'game' : 'games'} saved</p>
-
-              {/* Stats */}
-              <div className="wishlist-stats">
-                <div style={styles.statsCard}>
-                  <p style={styles.statsLabel}>Total Value</p>
-                  <p style={styles.statsValue}>${totalValue.toFixed(2)}</p>
+        <div style={styles.profileLayout} className="profile-layout">
+          {/* Sidebar */}
+          <aside style={styles.sidebar} className="profile-sidebar">
+            {/* User Stats Card */}
+            <div style={styles.userStatsCard} className="user-stats">
+              <h3 style={styles.userName}>{user?.nickname || 'Newbie Guy'}</h3>
+              <div style={styles.statsGrid}>
+                <div style={styles.statItem}>
+                  <span style={styles.statLabel}>Games Purchased</span>
+                  <span style={styles.statValue}>{userStats.totalGames}</span>
                 </div>
-                <div style={styles.statsCard}>
-                  <p style={styles.statsLabel}>Potential Savings</p>
-                  <p style={{ ...styles.statsValue, ...styles.statsSavings }}>${totalSavings.toFixed(2)}</p>
+                <div style={styles.statItem}>
+                  <span style={styles.statLabel}>Total Saved</span>
+                  <span style={styles.statValuePrimary}>€{userStats.totalSaved.toFixed(2)}</span>
                 </div>
-                <div style={styles.statsCard}>
-                  <p style={styles.statsLabel}>Games on Sale</p>
-                  <p style={styles.statsValue}>{wishlist.filter(g => g.discount > 0).length}</p>
+                <div style={styles.statItem}>
+                  <span style={styles.statLabel}>Member for</span>
+                  <span style={styles.statValue}>{userStats.daysSinceRegistration} days</span>
                 </div>
               </div>
+            </div>
 
-              {/* Wishlist Grid */}
-              <div className="wishlist-grid">
-                {wishlist.map(game => (
-                  <div key={game.id} style={styles.gameCard}>
-                    <img src={game.image} alt={game.title} style={styles.gameImage} />
-                    <button 
-                      onClick={() => removeFromWishlist(game.id)} 
-                      style={styles.removeBtn}
-                      title="Remove from wishlist"
-                    >
-                      <Icons.X />
-                    </button>
-                    {game.discount > 0 && (
-                      <span style={styles.discountBadge}>-{game.discount}%</span>
-                    )}
-                    <div style={styles.gameInfo}>
-                      <p style={styles.gameMeta}>{game.platform} • {game.genre}</p>
-                      <h3 style={styles.gameTitle}>{game.title}</h3>
-                      <div style={styles.priceRow}>
-                        <span style={styles.gamePrice}>${game.price}</span>
-                        {game.originalPrice && (
-                          <span style={styles.originalPrice}>${game.originalPrice}</span>
-                        )}
-                      </div>
-                      <button onClick={() => addToCart(game)} style={styles.addToCartBtn}>
-                        <Icons.Cart /> Add to Cart
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Random Games Section */}
-              {randomGames.length > 0 && (
-                <section style={styles.randomSection}>
-                  <h2 style={styles.randomTitle}>Discover New Games</h2>
-                  <div className="random-games-grid">
-                    {randomGames.map(game => (
-                      <Link 
-                        key={game.id} 
-                        to={`/game/${game.slug}`} 
-                        style={{ textDecoration: 'none' }}
-                      >
-                        <div style={styles.randomCard}>
-                          <img src={game.image} alt={game.title} style={styles.randomImage} />
-                          <div style={styles.randomInfo}>
-                            <h3 style={styles.randomGameTitle}>{game.title}</h3>
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                              <span style={styles.randomPrice}>€{game.price?.toFixed(2)}</span>
-                              {game.originalPrice && game.originalPrice > game.price && (
-                                <span style={styles.randomOriginalPrice}>€{game.originalPrice.toFixed(2)}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </>
-          ) : (
-            <>
-              <div style={styles.emptyWishlist}>
-                <div style={styles.emptyIcon}>💚</div>
-                <h2 style={styles.emptyTitle}>Your wishlist is empty</h2>
-                <p style={styles.emptyText}>
-                  Save games you're interested in by clicking the heart icon. 
-                  We'll notify you when they go on sale!
-                </p>
-                <Link to="/catalog">
-                  <button style={styles.browseBtn}>Browse Catalog</button>
+            {/* Navigation */}
+            <div className="sidebar-nav">
+              {sidebarItems.map((item) => (
+                <Link
+                  key={item.id}
+                  to={item.path}
+                  style={styles.sidebarItem(item.id === 'wishlist')}
+                  className="sidebar-item"
+                >
+                  {item.label}
                 </Link>
-              </div>
+              ))}
+            </div>
+            <button type="button" style={styles.logoutButton} onClick={handleLogout}>Log Out</button>
+          </aside>
 
-              {/* Random Games Section - also shown when wishlist is empty */}
-              {randomGames.length > 0 && (
-                <section style={{ ...styles.randomSection, marginTop: '32px', borderTop: 'none' }}>
-                  <h2 style={styles.randomTitle}>Discover New Games</h2>
-                  <div className="random-games-grid">
-                    {randomGames.map(game => (
-                      <Link 
-                        key={game.id} 
-                        to={`/game/${game.slug}`} 
-                        style={{ textDecoration: 'none' }}
-                      >
-                        <div style={styles.randomCard}>
-                          <img src={game.image} alt={game.title} style={styles.randomImage} />
+          {/* Wishlist Content */}
+          <div style={styles.content}>
+            {wishlist.length > 0 ? (
+              <>
+                <div style={styles.pageHeader}>
+                  <h1 style={styles.pageTitle}>Wishlist</h1>
+                  <button 
+                    type="button"
+                    style={styles.addAllButton}
+                    onClick={() => {
+                      showNotification(`${wishlist.length} items added to cart`);
+                    }}
+                  >
+                    <Icons.Cart /> Add All to Cart
+                  </button>
+                </div>
+
+                <div style={styles.wishlistGrid} className="wishlist-grid">
+                  {wishlist.map((game) => {
+                    const discount = game.originalPrice && game.price < game.originalPrice
+                      ? Math.round((1 - game.price / game.originalPrice) * 100)
+                      : null;
+
+                    return (
+                      <div key={game.id} style={styles.gameCard}>
+                        <Link to={`/game/${game.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                          <img 
+                            src={game.image || game.images?.[0]} 
+                            alt={game.title} 
+                            style={styles.gameImage} 
+                          />
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => removeFromWishlist(game.id)}
+                          style={styles.removeButton}
+                          title="Remove from wishlist"
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 68, 68, 0.9)';
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                            e.currentTarget.style.transform = 'scale(1)';
+                          }}
+                        >
+                          <Icons.Heart />
+                        </button>
+                        {game.isBestSeller && (
+                          <span style={styles.bestSellerBadge}>Best Seller</span>
+                        )}
+                        {discount && !game.isBestSeller && (
+                          <span style={styles.discountBadge}>-{discount}%</span>
+                        )}
+                        <div style={styles.gameInfo}>
+                          <h3 style={styles.gameTitle}>{game.title}</h3>
+                          <p style={styles.gameMeta}>
+                            {game.platforms?.[0] || 'PC'} • {game.genres?.[0] || 'Game'}
+                          </p>
+                          <div style={styles.priceRow}>
+                            <span style={styles.gamePrice}>€{game.price?.toFixed(2) || '0.00'}</span>
+                            {game.originalPrice && game.originalPrice > game.price && (
+                              <span style={styles.originalPrice}>€{game.originalPrice.toFixed(2)}</span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addToCart(game)}
+                            style={styles.addToCartButton}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = theme.colors.surfaceLight;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = theme.colors.surface;
+                            }}
+                          >
+                            <Icons.Cart /> Add to Cart
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Random Games Section */}
+                {randomGames.length > 0 && (
+                  <section style={styles.randomSection}>
+                    <h2 style={styles.randomTitle}>You might also like</h2>
+                    <div style={styles.randomGrid} className="random-games-grid">
+                      {randomGames.map((game) => (
+                        <Link
+                          key={game.id}
+                          to={`/game/${game.slug}`}
+                          style={styles.randomCard}
+                        >
+                          <img
+                            src={game.image || game.images?.[0]}
+                            alt={game.title}
+                            style={styles.randomImage}
+                          />
                           <div style={styles.randomInfo}>
                             <h3 style={styles.randomGameTitle}>{game.title}</h3>
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                              <span style={styles.randomPrice}>€{game.price?.toFixed(2)}</span>
+                            <div style={styles.randomPriceRow}>
+                              <span style={styles.randomPrice}>€{game.price?.toFixed(2) || '0.00'}</span>
                               {game.originalPrice && game.originalPrice > game.price && (
-                                <span style={styles.randomOriginalPrice}>€{game.originalPrice.toFixed(2)}</span>
+                                <span style={styles.randomOriginalPrice}>
+                                  €{game.originalPrice.toFixed(2)}
+                                </span>
                               )}
                             </div>
                           </div>
-                        </div>
-                      </Link>
-                    ))}
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
+            ) : (
+              <>
+                <div style={styles.emptyState}>
+                  <div style={styles.emptyBackground}></div>
+                  <div style={styles.emptyContent}>
+                    <div style={styles.emptyIcon}>💚</div>
+                    <h2 style={styles.emptyTitle}>Your wishlist is empty</h2>
+                    <p style={styles.emptyText}>
+                      Add items using the <Icons.Heart /> button. We'll notify you when they go on sale!
+                    </p>
+                    <Link to="/catalog" style={styles.browseButton}>
+                      Go to Store
+                    </Link>
                   </div>
-                </section>
-              )}
-            </>
-          )}
-        </main>
+                </div>
+
+                {/* Random Games Section - also shown when wishlist is empty */}
+                {randomGames.length > 0 && (
+                  <section style={{ ...styles.randomSection, marginTop: '32px', borderTop: 'none' }}>
+                    <h2 style={styles.randomTitle}>You might also like</h2>
+                    <div style={styles.randomGrid} className="random-games-grid">
+                      {randomGames.map((game) => (
+                        <Link
+                          key={game.id}
+                          to={`/game/${game.slug}`}
+                          style={styles.randomCard}
+                        >
+                          <img
+                            src={game.image || game.images?.[0]}
+                            alt={game.title}
+                            style={styles.randomImage}
+                          />
+                          <div style={styles.randomInfo}>
+                            <h3 style={styles.randomGameTitle}>{game.title}</h3>
+                            <div style={styles.randomPriceRow}>
+                              <span style={styles.randomPrice}>€{game.price?.toFixed(2) || '0.00'}</span>
+                              {game.originalPrice && game.originalPrice > game.price && (
+                                <span style={styles.randomOriginalPrice}>
+                                  €{game.originalPrice.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </main>
     </>
   );
 }
-

@@ -809,5 +809,26 @@ export const gamesApi = {
       ];
     }
   },
+
+  getWishlist: async (): Promise<Game[]> => {
+    try {
+      const response = await apiClient.get<{ success: boolean; data: Game[] }>(
+        '/api/user/wishlist'
+      );
+      return response.data;
+    } catch {
+      // Return mock wishlist - first 6 games
+      return mockGamesFromG2A.slice(0, 6);
+    }
+  },
+
+  removeFromWishlist: async (gameId: string): Promise<void> => {
+    try {
+      await apiClient.delete(`/api/user/wishlist/${gameId}`);
+    } catch (error) {
+      console.error('Failed to remove from wishlist:', error);
+      throw error;
+    }
+  },
 };
 
