@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 // @ts-ignore - UIKit is a JSX file
 import { Icons } from '../UIKit';
+import { Aurora } from '../ui/aurora';
+import { ClickSpark } from '../ui/click-spark';
 interface Game {
   id: string;
   title: string;
@@ -59,18 +61,38 @@ export const HeroContent: React.FC<HeroContentProps> = ({
       exit="exit"
       style={{
         position: 'relative',
-        minHeight: '500px',
-        height: 'auto',
-        backgroundImage: `linear-gradient(to right, rgba(13,13,13,0.9), rgba(13,13,13,0.3)), url(${game.image})`,
+        height: '100vh',
+        minHeight: '600px',
+        backgroundImage: `url(${game.image})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         display: 'flex',
         alignItems: 'center',
-        padding: '48px',
+        padding: '32px 48px',
+        overflow: 'hidden',
       }}
       className="hero-section"
     >
-      <div style={{ maxWidth: '500px', zIndex: 10, width: '100%' }}>
+      {/* Dark overlay from top */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'linear-gradient(to bottom, rgba(13,13,13,0.85) 0%, rgba(13,13,13,0.6) 50%, rgba(13,13,13,0.4) 100%)',
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+      />
+      
+      {/* Aurora Effect Overlay */}
+      <div style={{ pointerEvents: 'none', zIndex: 1 }}>
+        <Aurora color="#b4ff00" intensity={0.15} />
+      </div>
+      
+      <div style={{ maxWidth: '520px', zIndex: 2, width: '100%', position: 'relative' }}>
         {game.discount && (
           <motion.span
             initial={{ opacity: 0, scale: 0.8 }}
@@ -96,14 +118,16 @@ export const HeroContent: React.FC<HeroContentProps> = ({
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
+          className="hero-title"
           style={{
-            fontSize: '48px',
+            fontSize: '72px',
             fontWeight: '700',
             marginBottom: '16px',
             lineHeight: '1.1',
             wordWrap: 'break-word',
+            color: '#FFFFFF',
+            textShadow: '0 2px 20px rgba(0, 0, 0, 0.5)',
           }}
-          className="hero-title"
         >
           {game.title}
         </motion.h1>
@@ -115,9 +139,9 @@ export const HeroContent: React.FC<HeroContentProps> = ({
             transition={{ delay: 0.2 }}
             style={{
               color: '#999999',
-              fontSize: '16px',
-              marginBottom: '24px',
-              lineHeight: '1.6',
+              fontSize: '15px',
+              marginBottom: '20px',
+              lineHeight: '1.5',
             }}
           >
             {game.shortDescription}
@@ -129,12 +153,12 @@ export const HeroContent: React.FC<HeroContentProps> = ({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
           style={{
-            fontSize: '32px',
+            fontSize: '28px',
             fontWeight: '700',
-            marginBottom: '24px',
+            marginBottom: '20px',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
           }}
           className="hero-price"
         >
@@ -167,68 +191,77 @@ export const HeroContent: React.FC<HeroContentProps> = ({
           transition={{ delay: 0.4 }}
           style={{
             display: 'flex',
-            gap: '12px',
+            gap: '10px',
             flexWrap: 'wrap',
             width: '100%',
           }}
           className="hero-buttons"
         >
-          <motion.button
+          <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={onBuyClick}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '14px 32px',
-              backgroundColor: '#00FF66',
-              color: '#000',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-            }}
+            style={{ display: 'inline-block' }}
           >
-            <Icons.Cart /> Buy
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onWishlistClick}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '14px 32px',
-              backgroundColor: 'rgba(26, 26, 26, 0.8)',
-              color: '#fff',
-              border: '1px solid #333333',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-            }}
-          >
-            <Icons.Heart /> Wishlist
-          </motion.button>
-
-          <Link to={`/game/${game.slug}`}>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <ClickSpark
+              onClick={onBuyClick}
+              color="#b4ff00"
               style={{
-                padding: '14px 32px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '10px 20px',
+                backgroundColor: '#00FF66',
+                color: '#000',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              <Icons.Cart /> Buy
+            </ClickSpark>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            style={{ display: 'inline-block' }}
+          >
+            <ClickSpark
+              onClick={onWishlistClick}
+              color="#b4ff00"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '10px 20px',
                 backgroundColor: 'rgba(26, 26, 26, 0.8)',
                 color: '#fff',
                 border: '1px solid #333333',
                 borderRadius: '8px',
-                fontSize: '16px',
+                fontSize: '14px',
                 fontWeight: '600',
                 cursor: 'pointer',
-                textDecoration: 'none',
+              }}
+            >
+              <Icons.Heart /> Wishlist
+            </ClickSpark>
+          </motion.div>
+
+          <Link to={`/game/${game.slug}`} style={{ textDecoration: 'none' }}>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: 'rgba(26, 26, 26, 0.8)',
+                color: '#fff',
+                border: '1px solid #333333',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
               }}
             >
               More Info

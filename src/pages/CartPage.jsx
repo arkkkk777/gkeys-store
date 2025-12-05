@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { gamesApi } from '../services/gamesApi';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 const theme = {
   colors: {

@@ -7,6 +7,7 @@ import { HeroContent } from '../components/home/HeroContent';
 import { gamesApi } from '../services/gamesApi';
 import { useAuth } from '../hooks/useAuth';
 
+
 const theme = {
   colors: {
     primary: '#00FF66',
@@ -33,20 +34,22 @@ const responsiveCSS = `
     .desktop-search { display: none !important; }
     .desktop-login { display: none !important; }
     .mobile-menu-btn { display: flex !important; }
-    .hero-section { height: 400px !important; padding: 0 16px !important; }
-    .hero-content-wrapper { margin-top: 80px !important; }
+    .hero-section { height: 100vh !important; min-height: 500px !important; padding: 0 16px !important; }
+    .hero-content-wrapper { margin-top: 75px !important; }
+    .hero-title h1 { font-size: 48px !important; }
     .hero-title { font-size: 28px !important; line-height: 1.2 !important; }
+    .hero-title h1 { font-size: 28px !important; }
     .hero-price { font-size: 20px !important; }
-    .hero-carousel-container { padding: 12px 16px !important; }
-    .hero-carousel-item { width: 60px !important; height: 60px !important; }
+    .hero-carousel-container { padding: 10px 16px !important; }
+    .hero-carousel-item { width: 56px !important; height: 56px !important; }
     .game-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
     .section-title { font-size: 20px !important; }
     .container { padding: 0 16px !important; }
   }
   @media (max-width: 480px) {
-    .hero-section { height: 350px !important; padding: 0 12px !important; }
+    .hero-section { height: 100vh !important; min-height: 450px !important; padding: 0 12px !important; }
     .hero-content-wrapper { margin-top: 70px !important; }
-    .hero-title { font-size: 24px !important; margin-bottom: 12px !important; }
+    .hero-title h1 { font-size: 36px !important; margin-bottom: 12px !important; }
     .hero-price { font-size: 18px !important; }
     .hero-buttons { flex-direction: column !important; width: 100% !important; gap: 8px !important; }
     .hero-buttons button { width: 100% !important; }
@@ -74,8 +77,8 @@ const responsiveCSS = `
     .original-price { font-size: 12px !important; }
   }
   @media (max-width: 374px) {
-    .hero-section { height: 300px !important; }
-    .hero-title { font-size: 20px !important; }
+    .hero-section { height: 100vh !important; min-height: 400px !important; }
+    .hero-title h1 { font-size: 28px !important; }
     .hero-price { font-size: 16px !important; }
     .game-grid { gap: 8px !important; }
     .container { padding: 0 12px !important; }
@@ -97,7 +100,6 @@ const styles = {
     backgroundPosition: 'center',
     display: 'flex',
     alignItems: 'center',
-    padding: '0 48px',
   },
   heroContent: {
     maxWidth: '500px',
@@ -538,9 +540,11 @@ export default function HomePage() {
             top: 0, 
             left: 0, 
             right: 0, 
-            zIndex: 1,
-            padding: '16px 24px',
-            backgroundColor: 'rgba(13, 13, 13, 0.8)',
+            zIndex: 10,
+            padding: '12px 20px',
+            backgroundColor: 'rgba(13, 13, 13, 0.85)',
+            backdropFilter: 'blur(8px)',
+            pointerEvents: 'auto',
           }} className="hero-carousel-container">
             <HeroCarousel
               games={heroGames}
@@ -550,7 +554,7 @@ export default function HomePage() {
               autoPlayInterval={5000}
             />
           </div>
-          <div style={{ marginTop: '100px' }} className="hero-content-wrapper">
+          <div style={{ marginTop: '90px', position: 'relative' }} className="hero-content-wrapper">
             <HeroContent
               game={selectedGame}
               onBuyClick={handleBuyClick}

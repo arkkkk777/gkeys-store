@@ -44,6 +44,11 @@ backend/prisma/dev.db-journal
 *.sln
 *.sw?
 
+# Cursor agent folder (may contain credentials/auth tokens)
+.cursor/
+!.cursor/commands/
+!.cursor/mcp-config.json
+
 # Vercel
 .vercel
 
