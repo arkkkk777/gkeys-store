@@ -16,9 +16,9 @@ uploads/
 *.dump
 
 # Compiled TypeScript files in prisma
+# Note: seed.ts is a source file and won't match these patterns, so no negation needed
 prisma/*.d.ts
 prisma/*.d.ts.map
 prisma/*.js
 prisma/*.js.map
-!prisma/seed.ts
 

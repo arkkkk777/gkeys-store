@@ -70,8 +70,8 @@ coverage
 *.dump
 
 # Compiled TypeScript files in prisma
+# Note: seed.ts is a source file and won't match these patterns, so no negation needed
 backend/prisma/*.d.ts
 backend/prisma/*.d.ts.map
 backend/prisma/*.js
 backend/prisma/*.js.map
-!backend/prisma/seed.ts
