@@ -1,5 +1,4 @@
-// Note: apiClient is available for future backend integration
-// import apiClient from './api';
+import apiClient from './api';
 
 export interface BlogPost {
   id: string;
@@ -7,12 +6,13 @@ export interface BlogPost {
   title: string;
   excerpt: string;
   content: string;
-  image: string;
-  category: 'news' | 'guides' | 'reviews';
+  image?: string;
+  coverImage?: string;
+  category: string;
   author: string;
   publishedAt: string;
-  readTime: number;
-  tags: string[];
+  readTime?: number;
+  tags?: string[];
 }
 
 export interface BlogFilters {
@@ -165,53 +165,120 @@ const mockPosts: BlogPost[] = [
 
 export const blogApi = {
   getPosts: async (filters?: BlogFilters): Promise<PaginatedBlogResponse> => {
-    // In a real app, this would call the API
-    // For now, we filter the mock data
-    let filteredPosts = [...mockPosts];
-    
-    if (filters?.category && filters.category !== 'all') {
-      filteredPosts = filteredPosts.filter(post => post.category === filters.category);
+    try {
+      const params: Record<string, string> = {};
+      if (filters?.category && filters.category !== 'all') {
+        params.category = filters.category;
+      }
+      if (filters?.search) {
+        params.search = filters.search;
+      }
+      if (filters?.page) {
+        params.page = filters.page.toString();
+      }
+      if (filters?.pageSize) {
+        params.pageSize = filters.pageSize.toString();
+      }
+
+      const response = await apiClient.get<{
+        success: boolean;
+        data: {
+          data: BlogPost[];
+          total: number;
+          page: number;
+          pageSize: number;
+          totalPages: number;
+        };
+      }>('/api/blog/articles', { params });
+
+      const result = response.data;
+      return {
+        data: result.data.map((article) => ({
+          id: article.id,
+          slug: article.slug,
+          title: article.title,
+          excerpt: article.excerpt || '',
+          content: article.content || '',
+          image: article.coverImage || article.image || '',
+          category: article.category || '',
+          author: article.author || 'Unknown',
+          publishedAt: article.publishedAt || '',
+          readTime: article.readTime || 5,
+          tags: article.tags || [],
+        })),
+        total: result.total,
+        page: result.page,
+        pageSize: result.pageSize,
+        totalPages: result.totalPages,
+      };
+    } catch (error) {
+      console.error('Failed to load posts:', error);
+      // Fallback to empty result
+      return {
+        data: [],
+        total: 0,
+        page: filters?.page || 1,
+        pageSize: filters?.pageSize || 9,
+        totalPages: 0,
+      };
     }
-    
-    if (filters?.search) {
-      const searchLower = filters.search.toLowerCase();
-      filteredPosts = filteredPosts.filter(post => 
-        post.title.toLowerCase().includes(searchLower) ||
-        post.excerpt.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    const page = filters?.page || 1;
-    const pageSize = filters?.pageSize || 9;
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    
-    return {
-      data: filteredPosts.slice(start, end),
-      total: filteredPosts.length,
-      page,
-      pageSize,
-      totalPages: Math.ceil(filteredPosts.length / pageSize),
-    };
   },
 
   getPost: async (slug: string): Promise<BlogPost | null> => {
-    // In a real app, this would call the API
-    const post = mockPosts.find(p => p.slug === slug);
-    return post || null;
+    try {
+      const response = await apiClient.get<{
+        success: boolean;
+        data: BlogPost;
+      }>(`/api/blog/articles/slug/${slug}`);
+
+      const article = response.data;
+      return {
+        id: article.id,
+        slug: article.slug,
+        title: article.title,
+        excerpt: article.excerpt || '',
+        content: article.content || '',
+        image: article.coverImage || article.image || '',
+        category: article.category || '',
+        author: article.author || 'Unknown',
+        publishedAt: article.publishedAt || '',
+        readTime: article.readTime || 5,
+        tags: article.tags || [],
+      };
+    } catch (error) {
+      console.error('Failed to load post:', error);
+      return null;
+    }
   },
 
   getCategories: async (): Promise<Array<{ name: string; slug: string; count: number }>> => {
-    return [
-      { name: 'All', slug: 'all', count: mockPosts.length },
-      { name: 'News', slug: 'news', count: mockPosts.filter(p => p.category === 'news').length },
-      { name: 'Guides', slug: 'guides', count: mockPosts.filter(p => p.category === 'guides').length },
-      { name: 'Reviews', slug: 'reviews', count: mockPosts.filter(p => p.category === 'reviews').length },
-    ];
+    try {
+      const response = await apiClient.get<{
+        success: boolean;
+        data: Array<{ name: string; slug: string; count: number }>;
+      }>('/api/blog/categories');
+
+      return response.data;
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+      // Fallback to default categories
+      return [
+        { name: 'All', slug: 'all', count: 0 },
+        { name: 'News', slug: 'news', count: 0 },
+        { name: 'Guides', slug: 'guides', count: 0 },
+        { name: 'Reviews', slug: 'reviews', count: 0 },
+      ];
+    }
   },
 
   getRecentPosts: async (limit: number = 5): Promise<BlogPost[]> => {
-    return mockPosts.slice(0, limit);
+    try {
+      const result = await this.getPosts({ page: 1, pageSize: limit });
+      return result.data;
+    } catch (error) {
+      console.error('Failed to load recent posts:', error);
+      return [];
+    }
   },
 };
 

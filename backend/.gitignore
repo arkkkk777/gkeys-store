@@ -9,3 +9,16 @@ uploads/
 *.seed
 *.pid.lock
 
+# Backup files
+*.bak
+
+# Database dumps
+*.dump
+
+# Compiled TypeScript files in prisma
+prisma/*.d.ts
+prisma/*.d.ts.map
+prisma/*.js
+prisma/*.js.map
+!prisma/seed.ts
+

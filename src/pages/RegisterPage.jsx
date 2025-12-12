@@ -4,19 +4,21 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 
+// Using design tokens from design-tokens.ts
+// Colors: background #121212, surface #242424, surfaceLight #2A2A2A, border #333333
 const theme = {
   colors: {
-    primary: '#00FF66',
+    primary: '#00C8C2',
     primaryDark: '#00CC52',
-    background: '#0D0D0D',
-    surface: '#1A1A1A',
+    background: '#121212',
+    surface: '#242424',
     surfaceLight: '#2A2A2A',
     text: '#FFFFFF',
-    textSecondary: '#999999',
-    textMuted: '#666666',
+    textSecondary: '#E5E7EB',
+    textMuted: '#9CA3AF',
     border: '#333333',
     error: '#FF4444',
-    success: '#00FF66',
+    success: '#00C8C2',
   },
 };
 
@@ -160,7 +162,7 @@ export default function RegisterPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px',
+      padding: '32px 20px',
     },
     backLink: {
       position: 'absolute',
@@ -176,11 +178,12 @@ export default function RegisterPage() {
     },
     card: {
       background: theme.colors.surface,
-      borderRadius: '20px',
+      borderRadius: '24px',
       padding: '40px',
       width: '100%',
       maxWidth: '480px',
-      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+      border: `1px solid ${theme.colors.border}`,
+      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.35)',
       maxHeight: '90vh',
       overflowY: 'auto',
     },
@@ -232,8 +235,8 @@ export default function RegisterPage() {
     input: {
       width: '100%',
       background: theme.colors.surfaceLight,
-      border: `2px solid ${theme.colors.border}`,
-      borderRadius: '12px',
+      border: `1.5px solid ${theme.colors.border}`,
+      borderRadius: '16px',
       padding: '14px 14px 14px 48px',
       color: theme.colors.text,
       fontSize: '15px',
@@ -317,11 +320,11 @@ export default function RegisterPage() {
       color: '#000',
       border: 'none',
       padding: '16px',
-      borderRadius: '12px',
+      borderRadius: '16px',
       fontSize: '16px',
       fontWeight: '700',
       cursor: 'pointer',
-      transition: 'background 0.2s, transform 0.1s',
+      transition: 'background 0.2s, transform 0.1s, box-shadow 0.2s',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',

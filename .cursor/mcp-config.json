@@ -12,6 +12,7 @@
         "DB_NAME": "${DIRECT_URL_DATABASE}",
         "DB_USER": "${DIRECT_URL_USER}",
         "DB_PASSWORD": "${DIRECT_URL_PASSWORD}"
+        
       }
     }
   }

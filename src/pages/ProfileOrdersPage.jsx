@@ -1,12 +1,12 @@
-// Profile Orders Page - GKEYS Gaming Store
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Icons } from '../components/UIKit';
-import { useAuth } from '../context/AuthContext';
+import ProfileLayout from '../components/profile/ProfileLayout';
+import { orderApi } from '../services/orderApi';
 
 const theme = {
   colors: {
-    primary: '#00FF66',
+    primary: '#00C8C2',
     background: '#0D0D0D',
     surface: '#1A1A1A',
     surfaceLight: '#2A2A2A',
@@ -14,365 +14,356 @@ const theme = {
     textSecondary: '#999999',
     textMuted: '#666666',
     border: '#333333',
-    error: '#FF4444',
   },
-  spacing: { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px' },
-  borderRadius: { sm: '4px', md: '8px', lg: '12px', xl: '16px', full: '9999px' },
 };
 
-const sidebarItems = [
-  { id: 'orders', label: 'Orders', path: '/profile/orders' },
-  { id: 'wishlist', label: 'Wishlist', path: '/wishlist' },
-  { id: 'balance', label: 'Balance', path: '/profile/balance' },
-  { id: 'edit-profile', label: 'Edit Profile', path: '/profile/edit' },
-];
 
-// Mock user stats
-const userStats = {
-  totalGames: 24,
-  totalSaved: 156.50,
-  daysSinceRegistration: 127,
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
 };
 
-const orders = [
-  { id: '417213', date: '10 November 2025', status: 'Completed', game: 'Metro Exodus', image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=120&h=160&fit=crop', price: 13 },
-  { id: '417212', date: '10 November 2025', status: 'Completed', game: 'Metro Redux Bundle', image: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=120&h=160&fit=crop', price: 13 },
-];
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  },
+};
 
-const responsiveCSS = `
-  @media (max-width: 768px) {
-    .desktop-nav { display: none !important; }
-    .desktop-search { display: none !important; }
-    .desktop-login { display: none !important; }
-    .profile-layout { flex-direction: column !important; }
-    .profile-sidebar { width: 100% !important; flex-direction: column !important; gap: 8px !important; padding-bottom: 16px !important; }
-    .sidebar-nav { display: flex !important; flex-direction: row !important; overflow-x: auto !important; gap: 8px !important; }
-    .sidebar-item { white-space: nowrap !important; padding: 10px 16px !important; }
-    .user-stats { display: none !important; }
-    .order-card { flex-direction: column !important; align-items: flex-start !important; }
-    .order-image { width: 100% !important; max-width: 200px !important; }
-    .order-price { margin-top: 16px !important; }
-  }
-`;
-
-export default function ProfileOrdersPage() {
-  const [activeTab, setActiveTab] = useState('orders');
-
-  const styles = {
-    app: {
-      minHeight: '100vh',
-      backgroundColor: theme.colors.background,
-      color: theme.colors.text,
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-      display: 'flex',
-      flexDirection: 'column',
-    },
-    header: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '16px 24px',
-      backgroundColor: theme.colors.background,
-      borderBottom: `1px solid ${theme.colors.border}`,
-      position: 'sticky',
-      top: 0,
-      zIndex: 1000,
-    },
-    logo: {
-      display: 'flex',
-      alignItems: 'center',
-      fontSize: '24px',
-      fontWeight: '700',
-      textDecoration: 'none',
-      color: theme.colors.text,
-    },
-    nav: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '32px',
-    },
-    navLink: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      color: theme.colors.text,
-      textDecoration: 'none',
-      fontSize: '16px',
-    },
-    rightSection: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
-    },
-    iconButton: {
-      width: '44px',
-      height: '44px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: '50%',
-      backgroundColor: theme.colors.surface,
-      color: theme.colors.text,
-      border: 'none',
-      cursor: 'pointer',
-    },
-    searchButton: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '10px 20px',
-      backgroundColor: theme.colors.surface,
-      borderRadius: '50px',
-      color: theme.colors.textSecondary,
-      border: 'none',
-      cursor: 'pointer',
-      minWidth: '150px',
-    },
-    loginButton: {
-      padding: '10px 24px',
-      backgroundColor: 'transparent',
-      border: `1px solid ${theme.colors.border}`,
-      borderRadius: '8px',
-      color: theme.colors.text,
-      fontSize: '14px',
-      fontWeight: '600',
-      cursor: 'pointer',
-    },
-    main: {
-      flex: 1,
-      padding: '48px 24px',
-      maxWidth: '1280px',
-      margin: '0 auto',
-      width: '100%',
-    },
-    profileLayout: {
-      display: 'flex',
-      gap: '48px',
-    },
-    sidebar: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px',
-      minWidth: '220px',
-    },
-    sidebarItem: (isActive) => ({
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '16px 24px',
-      backgroundColor: isActive ? theme.colors.surface : 'transparent',
-      borderRadius: '8px',
-      color: isActive ? theme.colors.text : theme.colors.textSecondary,
-      fontSize: '16px',
-      border: 'none',
-      cursor: 'pointer',
-      textAlign: 'left',
-      transition: 'all 0.2s ease',
-      textDecoration: 'none',
-    }),
-    sidebarBadge: {
-      backgroundColor: theme.colors.primary,
-      color: '#000',
-      padding: '2px 8px',
-      borderRadius: '50px',
-      fontSize: '12px',
-      fontWeight: '600',
-    },
-    logoutButton: {
-      padding: '16px 24px',
-      backgroundColor: 'transparent',
-      border: 'none',
-      color: theme.colors.error,
-      fontSize: '16px',
-      textAlign: 'left',
-      cursor: 'pointer',
-      marginTop: '16px',
-    },
-    userStatsCard: {
-      backgroundColor: theme.colors.surface,
-      borderRadius: '12px',
-      padding: '20px',
-      marginBottom: '24px',
-    },
-    userName: {
-      fontSize: '18px',
-      fontWeight: '600',
-      marginBottom: '16px',
-    },
-    statsGrid: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px',
-    },
-    statItem: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    statLabel: {
-      fontSize: '13px',
-      color: theme.colors.textSecondary,
-    },
-    statValue: {
-      fontSize: '14px',
-      fontWeight: '600',
-    },
-    statValuePrimary: {
-      fontSize: '14px',
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    content: {
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '16px',
-    },
-    orderCard: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: theme.colors.surfaceLight,
-      borderRadius: '16px',
-      padding: '24px',
-      gap: '24px',
-    },
-    orderInfo: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px',
-    },
-    orderStatus: {
-      color: theme.colors.textSecondary,
-      fontSize: '14px',
-    },
-    orderId: {
-      fontSize: '18px',
-      fontWeight: '600',
-    },
-    orderIdNumber: {
-      color: theme.colors.primary,
-    },
-    orderDate: {
-      color: theme.colors.textSecondary,
-      fontSize: '14px',
-    },
-    orderImage: {
-      width: '80px',
-      height: '100px',
-      borderRadius: '8px',
-      objectFit: 'cover',
-    },
-    orderPrice: {
-      fontSize: '20px',
-      fontWeight: '600',
-    },
-    footer: {
-      backgroundColor: theme.colors.background,
-      borderTop: `1px solid ${theme.colors.border}`,
-      padding: '48px 24px',
-      marginTop: 'auto',
-    },
-    footerTop: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: '24px',
-      marginBottom: '32px',
-      maxWidth: '1280px',
-      margin: '0 auto 32px',
-    },
-    footerNav: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '24px',
-    },
-    footerLink: {
-      color: theme.colors.textSecondary,
-      textDecoration: 'none',
-      fontSize: '14px',
-    },
-    footerSocial: {
-      display: 'flex',
-      gap: '16px',
-    },
-    footerBottom: {
-      textAlign: 'center',
-      paddingTop: '32px',
-      borderTop: `1px solid ${theme.colors.border}`,
-      maxWidth: '1280px',
-      margin: '0 auto',
-    },
-    copyright: {
-      color: theme.colors.textMuted,
-      fontSize: '12px',
-      lineHeight: '1.8',
-    },
+const StatusBadge = ({ status }) => {
+  const getStatusColor = (status) => {
+    switch (status?.toUpperCase()) {
+      case 'COMPLETED':
+        return { bg: 'rgba(0, 200, 194, 0.15)', text: theme.colors.primary };
+      case 'PENDING':
+        return { bg: 'rgba(255, 217, 61, 0.15)', text: '#FFD93D' };
+      case 'PROCESSING':
+        return { bg: 'rgba(255, 217, 61, 0.15)', text: '#FFD93D' };
+      case 'CANCELLED':
+      case 'FAILED':
+        return { bg: 'rgba(255, 68, 68, 0.15)', text: '#FF4444' };
+      default:
+        return { bg: theme.colors.surfaceLight, text: theme.colors.textSecondary };
+    }
   };
 
+  const colors = getStatusColor(status);
+  const displayStatus = status?.charAt(0).toUpperCase() + status?.slice(1).toLowerCase() || 'Unknown';
   return (
-    <>
-      <style>{responsiveCSS}</style>
-      {/* Main Content */}
-        <main style={styles.main}>
-          <div style={styles.profileLayout} className="profile-layout">
-            {/* Sidebar */}
-            <aside style={styles.sidebar} className="profile-sidebar">
-              {/* User Stats Card */}
-              <div style={styles.userStatsCard} className="user-stats">
-                <h3 style={styles.userName}>Newbie Guy</h3>
-                <div style={styles.statsGrid}>
-                  <div style={styles.statItem}>
-                    <span style={styles.statLabel}>Games Purchased</span>
-                    <span style={styles.statValue}>{userStats.totalGames}</span>
+    <span
+      style={{
+        padding: '4px 12px',
+        backgroundColor: colors.bg,
+        color: colors.text,
+        borderRadius: '4px',
+        fontSize: '12px',
+        fontWeight: '500',
+      }}
+    >
+      {displayStatus}
+    </span>
+  );
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'Unknown date';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
+export default function ProfileOrdersPage() {
+  const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadOrders = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const result = await orderApi.getOrders(1, 50); // Get up to 50 orders
+        setOrders(result.orders);
+      } catch (err) {
+        console.error('Failed to load orders:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load orders');
+        setOrders([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadOrders();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <ProfileLayout>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '200px',
+          }}
+        >
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid ' + theme.colors.border,
+              borderTopColor: theme.colors.primary,
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+            }}
+          />
+          <style>
+            {`
+              @keyframes spin {
+                to { transform: rotate(360deg); }
+              }
+            `}
+          </style>
+        </div>
+      </ProfileLayout>
+    );
+  }
+
+  return (
+    <ProfileLayout>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+        }}
+      >
+        {error ? (
+          <motion.div
+            variants={itemVariants}
+            style={{
+              textAlign: 'center',
+              padding: '48px',
+              backgroundColor: theme.colors.surface,
+              borderRadius: '16px',
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            <p style={{ color: '#FF4444', fontSize: '16px' }}>
+              {error}
+            </p>
+          </motion.div>
+        ) : orders.length === 0 ? (
+          <motion.div
+            variants={itemVariants}
+            style={{
+              textAlign: 'center',
+              padding: '48px',
+              backgroundColor: theme.colors.surface,
+              borderRadius: '16px',
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            <p style={{ color: theme.colors.textSecondary, fontSize: '16px' }}>
+              You don't have any orders yet
+            </p>
+            <Link
+              to="/catalog"
+              style={{
+                display: 'inline-block',
+                marginTop: '16px',
+                padding: '12px 24px',
+                backgroundColor: theme.colors.primary,
+                color: '#000',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                fontWeight: '600',
+              }}
+            >
+              Browse Games
+            </Link>
+          </motion.div>
+        ) : (
+          orders.map((order) => (
+            <motion.div
+              key={order.id}
+              variants={itemVariants}
+              whileHover={{ scale: 1.01 }}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '16px',
+                padding: '20px 24px',
+                border: `1px solid ${theme.colors.border}`,
+              }}
+            >
+              {/* Order Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div style={{ flex: 1 }}>
+                  <StatusBadge status={order.status} />
+                  <div style={{ marginTop: '12px' }}>
+                    <h3
+                      style={{
+                        fontSize: '18px',
+                        fontWeight: '600',
+                        color: theme.colors.text,
+                        margin: 0,
+                      }}
+                    >
+                      Order №{' '}
+                      <span style={{ color: theme.colors.primary }}>{order.id}</span>
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: '14px',
+                        color: theme.colors.textSecondary,
+                        margin: '4px 0 0 0',
+                      }}
+                    >
+                      {formatDate(order.createdAt)}
+                    </p>
                   </div>
-                  <div style={styles.statItem}>
-                    <span style={styles.statLabel}>Total Saved</span>
-                    <span style={styles.statValuePrimary}>€{userStats.totalSaved.toFixed(2)}</span>
-                  </div>
-                  <div style={styles.statItem}>
-                    <span style={styles.statLabel}>Member for</span>
-                    <span style={styles.statValue}>{userStats.daysSinceRegistration} days</span>
-                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: '24px',
+                    fontWeight: '700',
+                    color: theme.colors.primary,
+                    minWidth: '80px',
+                    textAlign: 'right',
+                  }}
+                >
+                  €{order.total.toFixed(2)}
                 </div>
               </div>
 
-              {/* Navigation */}
-              <div className="sidebar-nav">
-                {sidebarItems.map((item) => (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    style={styles.sidebarItem(activeTab === item.id)}
-                    className="sidebar-item"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-              <button style={styles.logoutButton}>Log Out</button>
-            </aside>
+              {/* Order Items */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {order.items && order.items.length > 0 ? (
+                  order.items.map((item) => (
+                    <div
+                      key={item.id || item.gameId}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        padding: '12px',
+                        backgroundColor: theme.colors.surfaceLight,
+                        borderRadius: '8px',
+                      }}
+                    >
+                      {/* Game Thumbnail - Clickable */}
+                      {item.game && (
+                        <Link
+                          to={`/game/${item.game.slug}`}
+                          style={{
+                            width: '60px',
+                            height: '75px',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            flexShrink: 0,
+                            textDecoration: 'none',
+                          }}
+                        >
+                          <img
+                            src={item.game.image}
+                            alt={item.game.title}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                            }}
+                            onError={(e) => {
+                              e.target.src = 'https://via.placeholder.com/60x75?text=Game';
+                            }}
+                          />
+                        </Link>
+                      )}
 
-            {/* Orders Content */}
-            <div style={styles.content}>
-              {orders.map((order) => (
-                <div key={order.id} style={styles.orderCard} className="order-card">
-                  <div style={styles.orderInfo}>
-                    <span style={styles.orderStatus}>{order.status}</span>
-                    <span style={styles.orderId}>
-                      Order № <span style={styles.orderIdNumber}>{order.id}</span>
-                    </span>
-                    <span style={styles.orderDate}>{order.date}</span>
-                  </div>
-                  <img src={order.image} alt={order.game} style={styles.orderImage} className="order-image" />
-                  <span style={styles.orderPrice} className="order-price">{order.price}€</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </main>
-    </>
+                      {/* Game Info */}
+                      <div style={{ flex: 1 }}>
+                        {item.game ? (
+                          <Link
+                            to={`/game/${item.game.slug}`}
+                            style={{
+                              textDecoration: 'none',
+                              color: 'inherit',
+                            }}
+                          >
+                            <h4
+                              style={{
+                                fontSize: '16px',
+                                fontWeight: '600',
+                                color: theme.colors.text,
+                                margin: '0 0 4px 0',
+                              }}
+                            >
+                              {item.game.title}
+                            </h4>
+                          </Link>
+                        ) : (
+                          <h4
+                            style={{
+                              fontSize: '16px',
+                              fontWeight: '600',
+                              color: theme.colors.text,
+                              margin: '0 0 4px 0',
+                            }}
+                          >
+                            Game ID: {item.gameId}
+                          </h4>
+                        )}
+                        <p
+                          style={{
+                            fontSize: '13px',
+                            color: theme.colors.textMuted,
+                            margin: 0,
+                          }}
+                        >
+                          Quantity: {item.quantity} × €{item.price.toFixed(2)} = €{(item.price * item.quantity).toFixed(2)}
+                        </p>
+                      </div>
+
+                      {/* Item Price */}
+                      <div
+                        style={{
+                          fontSize: '18px',
+                          fontWeight: '700',
+                          color: theme.colors.text,
+                          minWidth: '80px',
+                          textAlign: 'right',
+                        }}
+                      >
+                        €{(item.price * item.quantity).toFixed(2)}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ color: theme.colors.textMuted, fontSize: '14px' }}>
+                    No items in this order
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          ))
+        )}
+      </motion.div>
+    </ProfileLayout>
   );
 }
-

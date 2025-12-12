@@ -41,6 +41,8 @@ const buttonStyle: React.CSSProperties = {
   transition: 'all 0.2s',
 };
 
+
+
 interface SyncLog {
   timestamp: string;
   type: 'info' | 'success' | 'error' | 'warning';
@@ -52,6 +54,7 @@ const G2ASyncPage: React.FC = () => {
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
   const [syncResult, setSyncResult] = useState<'success' | 'error' | null>(null);
+  
 
   const addLog = (type: SyncLog['type'], message: string) => {
     setSyncLogs(prev => [...prev, {

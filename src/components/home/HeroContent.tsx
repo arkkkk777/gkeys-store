@@ -5,6 +5,9 @@ import { Link } from 'react-router-dom';
 import { Icons } from '../UIKit';
 import { Aurora } from '../ui/aurora';
 import { ClickSpark } from '../ui/click-spark';
+import { colors } from '@/styles/design-tokens';
+import cartIcon from '../../assets/cart.svg';
+import wishlistIcon from '../../assets/wishlist.svg';
 interface Game {
   id: string;
   title: string;
@@ -61,8 +64,8 @@ export const HeroContent: React.FC<HeroContentProps> = ({
       exit="exit"
       style={{
         position: 'relative',
-        height: '100vh',
-        minHeight: '600px',
+        height: '600px',
+        minHeight: '500px',
         backgroundImage: `url(${game.image})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -70,6 +73,9 @@ export const HeroContent: React.FC<HeroContentProps> = ({
         alignItems: 'center',
         padding: '32px 48px',
         overflow: 'hidden',
+        marginTop: 0,
+        marginBottom: 0,
+        zIndex: 1,
       }}
       className="hero-section"
     >
@@ -89,7 +95,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
       
       {/* Aurora Effect Overlay */}
       <div style={{ pointerEvents: 'none', zIndex: 1 }}>
-        <Aurora color="#b4ff00" intensity={0.15} />
+        <Aurora color={colors.accent} intensity={0.15} />
       </div>
       
       <div style={{ maxWidth: '520px', zIndex: 2, width: '100%', position: 'relative' }}>
@@ -101,7 +107,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              backgroundColor: '#00FF66',
+              backgroundColor: '#00C8C2',
               color: '#000',
               padding: '4px 12px',
               borderRadius: '50px',
@@ -170,7 +176,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
               <span>{game.price}€</span>
               <span
                 style={{
-                  backgroundColor: '#00FF66',
+                  backgroundColor: '#00C8C2',
                   color: '#000',
                   padding: '2px 8px',
                   borderRadius: '4px',
@@ -204,13 +210,13 @@ export const HeroContent: React.FC<HeroContentProps> = ({
           >
             <ClickSpark
               onClick={onBuyClick}
-              color="#b4ff00"
+              color={colors.accent}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
                 padding: '10px 20px',
-                backgroundColor: '#00FF66',
+                backgroundColor: '#00C8C2',
                 color: '#000',
                 border: 'none',
                 borderRadius: '8px',
@@ -219,7 +225,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
                 cursor: 'pointer',
               }}
             >
-              <Icons.Cart /> Buy
+              <img src={cartIcon} alt="Cart" width="18" height="18" style={{ display: 'block' }} /> Buy
             </ClickSpark>
           </motion.div>
 
@@ -230,7 +236,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
           >
             <ClickSpark
               onClick={onWishlistClick}
-              color="#b4ff00"
+              color={colors.accent}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -245,7 +251,7 @@ export const HeroContent: React.FC<HeroContentProps> = ({
                 cursor: 'pointer',
               }}
             >
-              <Icons.Heart /> Wishlist
+              <img src={wishlistIcon} alt="Wishlist" width="18" height="18" style={{ display: 'block' }} /> Wishlist
             </ClickSpark>
           </motion.div>
 

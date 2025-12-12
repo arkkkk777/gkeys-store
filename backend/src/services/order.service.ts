@@ -1,7 +1,8 @@
 import prisma from '../config/database';
 import { CreateOrderRequest, OrderResponse } from '../types/order';
 import { AppError } from '../middleware/errorHandler';
-import { purchaseGameKey } from './g2a.service';
+import { purchaseGameKey, validateGameStock } from './g2a.service';
+import { G2AError, G2AErrorCode } from '../types/g2a';
 import { sendGameKeyEmail } from './email.service';
 
 export const createOrder = async (
@@ -38,13 +39,30 @@ export const createOrder = async (
     throw error;
   }
 
-  // Check stock
+  // Check stock (both local and G2A if applicable)
   for (const item of items) {
     const game = games.find((g) => g.id === item.gameId);
     if (!game || !game.inStock) {
       const error: AppError = new Error(`Game ${game?.title || item.gameId} is out of stock`);
       error.statusCode = 400;
       throw error;
+    }
+    
+    // Validate G2A stock if game has G2A product ID
+    if (game.g2aProductId) {
+      try {
+        const stockResult = await validateGameStock(game.g2aProductId);
+        if (!stockResult.available || stockResult.stock < item.quantity) {
+          const error: AppError = new Error(
+            `Game ${game.title} is out of stock on G2A. Available: ${stockResult.stock}, Requested: ${item.quantity}`
+          );
+          error.statusCode = 400;
+          throw error;
+        }
+      } catch (error) {
+        // If G2A validation fails, log but don't block order (graceful degradation)
+        console.warn(`G2A stock check failed for ${game.g2aProductId}, proceeding with local stock check:`, error);
+      }
     }
   }
 
@@ -69,7 +87,7 @@ export const createOrder = async (
       where: { code: promoCode },
     });
 
-    if (promo && promo.active && promo.usedCount < (promo.maxUses || Infinity)) {
+    if (promo?.active && (promo.usedCount ?? 0) < (promo.maxUses ?? Infinity)) {
       const now = new Date();
       if (now >= promo.validFrom && now <= promo.validUntil) {
         discount = Number((subtotal * Number(promo.discount) / 100).toFixed(2));
@@ -91,11 +109,40 @@ export const createOrder = async (
     throw error;
   }
 
-  // Create order
+  // Check for existing order with same items (idempotency check)
+  // This is a simple check - in production, you might want a more sophisticated approach
+  const existingOrder = await prisma.order.findFirst({
+    where: {
+      userId,
+      status: { in: ['PENDING', 'PROCESSING'] },
+      createdAt: {
+        gte: new Date(Date.now() - 5 * 60 * 1000), // Within last 5 minutes
+      },
+    },
+    include: {
+      items: true,
+    },
+  });
+
+  if (existingOrder) {
+    // Check if items match (simple idempotency check)
+    const existingItemIds = existingOrder.items.map(i => i.gameId).sort().join(',');
+    const newItemIds = items.map(i => i.gameId).sort().join(',');
+    
+    if (existingItemIds === newItemIds) {
+      // Return existing order to prevent duplicate
+      const orderResponse = await getOrderById(userId, existingOrder.id);
+      if (orderResponse) {
+        return orderResponse;
+      }
+    }
+  }
+
+  // Create order with PENDING status initially
   const order = await prisma.order.create({
     data: {
       userId,
-      status: 'PROCESSING',
+      status: 'PENDING', // Will be updated to PROCESSING when G2A API call starts
       subtotal,
       discount,
       total,
@@ -114,6 +161,10 @@ export const createOrder = async (
               title: true,
               image: true,
               slug: true,
+              g2aProductId: true,
+              platforms: {
+                include: { platform: true },
+              },
             },
           },
         },
@@ -144,47 +195,143 @@ export const createOrder = async (
     },
   });
 
+  // Update order status to PROCESSING when G2A API calls start
+  await prisma.order.update({
+    where: { id: order.id },
+    data: {
+      status: 'PROCESSING',
+    },
+  });
+
   // Purchase keys from G2A and send emails
-  const gameKeys: any[] = [];
+  const gameKeys: Array<{
+    id: string;
+    gameId: string;
+    key: string;
+    orderId: string | null;
+    activated: boolean;
+    activationDate: Date | null;
+    createdAt: Date;
+  }> = [];
+  const purchaseErrors: Array<{ gameId: string; error: string }> = [];
+  
   for (const item of items) {
     const game = games.find((g) => g.id === item.gameId)!;
     
     if (game.g2aProductId) {
       try {
-        // Purchase key from G2A
-        const g2aKey = await purchaseGameKey(game.g2aProductId);
+        // Purchase keys from G2A (returns array of keys)
+        const g2aKeys = await purchaseGameKey(game.g2aProductId, item.quantity);
         
-        // Create game key
-        const gameKey = await prisma.gameKey.create({
-          data: {
-            gameId: game.id,
-            key: g2aKey.key,
-            orderId: order.id,
-          },
-        });
+        // Create game key records for all keys received
+        // NOTE: Game keys are currently stored in plain text in the database.
+        // For production, consider implementing encryption at rest:
+        // - Use AES-256 encryption for key field
+        // - Store encryption key in secure key management service
+        // - Decrypt keys only when needed for delivery
+        // This is a security consideration documented per task T046
+        for (const g2aKey of g2aKeys) {
+          const gameKey = await prisma.gameKey.create({
+            data: {
+              gameId: game.id,
+              key: g2aKey.key, // TODO: Consider encrypting this field for production
+              orderId: order.id,
+              activated: false,
+            },
+          });
+          gameKeys.push(gameKey);
 
-        gameKeys.push(gameKey);
-
-        // Send email with key
-        await sendGameKeyEmail(user.email, {
-          gameTitle: game.title,
-          key: g2aKey.key,
-          platform: game.platforms[0]?.platform.name || 'PC',
-        });
+          // Send email with key
+          try {
+            await sendGameKeyEmail(user.email, {
+              gameTitle: game.title,
+              key: g2aKey.key,
+              platform: game.platforms[0]?.platform.name || 'PC',
+            });
+          } catch (emailError) {
+            console.error(`Failed to send email for key ${gameKey.id}:`, emailError);
+            // Don't fail order if email fails - key is still delivered
+          }
+        }
       } catch (error) {
+        const errorMessage = error instanceof G2AError 
+          ? error.message 
+          : error instanceof Error 
+            ? error.message 
+            : 'Unknown error';
+        
+        purchaseErrors.push({
+          gameId: game.id,
+          error: errorMessage,
+        });
+        
         console.error(`Failed to purchase key for game ${game.id}:`, error);
-        // Continue with other games even if one fails
+        
+        // If it's a critical error (out of stock, API error), mark order as failed
+        if (error instanceof G2AError && 
+            (error.code === G2AErrorCode.G2A_OUT_OF_STOCK || 
+             error.code === G2AErrorCode.G2A_AUTH_FAILED ||
+             error.code === G2AErrorCode.G2A_API_ERROR)) {
+          // Mark order as failed
+          await prisma.order.update({
+            where: { id: order.id },
+            data: {
+              status: 'FAILED',
+              paymentStatus: 'FAILED',
+            },
+          });
+          
+          // Refund user balance
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              balance: {
+                increment: total,
+              },
+            },
+          });
+          
+          // Create refund transaction
+          await prisma.transaction.create({
+            data: {
+              userId,
+              orderId: order.id,
+              type: 'REFUND',
+              amount: total,
+              currency: 'EUR',
+              status: 'COMPLETED',
+              description: `Refund for failed order ${order.id}`,
+            },
+          });
+          
+          const error: AppError = new Error(
+            `Order failed: ${errorMessage}. Balance has been refunded.`
+          );
+          error.statusCode = 400;
+          throw error;
+        }
+        // For other errors, continue with other games
       }
     }
   }
 
-  // Update order status to COMPLETED
+  // Update order status based on results
+  let finalStatus: 'COMPLETED' | 'FAILED' = 'COMPLETED';
+  if (purchaseErrors.length > 0 && gameKeys.length === 0) {
+    // All purchases failed
+    finalStatus = 'FAILED';
+  } else if (purchaseErrors.length > 0) {
+    // Partial success - some keys purchased, some failed
+    // Order is completed but with errors logged
+    console.warn(`Order ${order.id} completed with ${purchaseErrors.length} errors`);
+  }
+
   const completedOrder = await prisma.order.update({
     where: { id: order.id },
     data: {
-      status: 'COMPLETED',
-      paymentStatus: 'COMPLETED',
-      completedAt: new Date(),
+      status: finalStatus,
+      paymentStatus: finalStatus === 'COMPLETED' ? 'COMPLETED' : 'FAILED',
+      completedAt: finalStatus === 'COMPLETED' ? new Date() : null,
     },
     include: {
       items: {

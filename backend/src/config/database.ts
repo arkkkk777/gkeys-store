@@ -1,11 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import { withAccelerate } from '@prisma/extension-accelerate';
 
+
 let prisma: ReturnType<typeof createPrismaClient>;
 
 function createPrismaClient() {
   return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    log: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['error'],
   }).$extends(withAccelerate());
 }
 

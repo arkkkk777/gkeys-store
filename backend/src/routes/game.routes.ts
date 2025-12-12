@@ -15,11 +15,13 @@ import {
   getAllPlatformsController,
   getFilterOptionsController,
   getCollectionsController,
+  getGameAutocompleteController,
 } from '../controllers/game.controller';
 
 const router = Router();
 
 router.get('/', getGamesController);
+router.get('/autocomplete', getGameAutocompleteController);
 router.get('/search', searchGamesController);
 router.get('/best-sellers', getBestSellersController);
 router.get('/new-in-catalog', getNewInCatalogController);

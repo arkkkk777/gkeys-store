@@ -8,6 +8,12 @@ export interface UserProfile {
   lastName: string | null;
   avatar: string | null;
   createdAt: string;
+  stats?: {
+    gamesPurchased: number;
+    totalSaved: number;
+    daysSinceRegistration: number;
+    emptyFieldsCount: number;
+  };
 }
 
 export interface UserStats {

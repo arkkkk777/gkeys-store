@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { colors } from '@/styles/design-tokens';
 
 const ChevronRightIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-label="Next">
@@ -50,13 +51,16 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
     if (!containerRef.current) return;
 
     const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
-    setCanScrollLeft(scrollLeft > 0);
-    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    // Use requestAnimationFrame for smooth updates
+    requestAnimationFrame(() => {
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    });
   }, []);
 
   const scrollLeft = useCallback(() => {
     if (!containerRef.current) return;
-    containerRef.current.scrollBy({ left: -120, behavior: 'smooth' });
+    containerRef.current.scrollBy({ left: -140, behavior: 'smooth' });
   }, []);
 
   const scrollRight = useCallback(() => {
@@ -67,7 +71,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
     if (scrollLeft >= scrollWidth - clientWidth - 10) {
       container.scrollTo({ left: 0, behavior: 'smooth' });
     } else {
-      container.scrollBy({ left: 120, behavior: 'smooth' });
+      container.scrollBy({ left: 140, behavior: 'smooth' });
     }
   }, []);
 
@@ -94,7 +98,8 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
 
     const container = containerRef.current;
     if (container) {
-      container.addEventListener('scroll', updateScrollState);
+      // Use passive listener for better performance
+      container.addEventListener('scroll', updateScrollState, { passive: true });
     }
 
     return () => {
@@ -106,13 +111,14 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
   }, [autoPlay, updateScrollState, startAutoPlay, stopAutoPlay]);
 
   return (
-    <div style={{ position: 'relative', marginBottom: '16px', pointerEvents: 'auto', zIndex: 10 }}>
+    <div style={{ position: 'relative', marginBottom: '16px', pointerEvents: 'auto', zIndex: 15 }}>
       {canScrollLeft && (
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+          transition={{ duration: 0.2 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={scrollLeft}
           onMouseEnter={stopAutoPlay}
           onMouseLeave={() => autoPlay && startAutoPlay()}
@@ -120,7 +126,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
             position: 'absolute',
             left: '8px',
             top: '50%',
-            transform: 'translateY(-50%)',
+            transform: 'translateY(-50%) translateZ(0)',
             zIndex: 20,
             backgroundColor: 'rgba(0, 0, 0, 0.6)',
             color: '#fff',
@@ -131,6 +137,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            willChange: 'transform',
           }}
           aria-label="Previous"
         >
@@ -146,8 +153,10 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
           msOverflowStyle: 'none',
           scrollSnapType: 'x mandatory',
           display: 'flex',
-          gap: '10px',
-          padding: '6px 0',
+          gap: '12px',
+          padding: '8px 0',
+          willChange: 'scroll-position',
+          WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
         }}
         onMouseEnter={stopAutoPlay}
         onMouseLeave={() => autoPlay && startAutoPlay()}
@@ -166,32 +175,34 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
               animate={{ 
                 opacity: 1, 
                 scale: 1,
-                boxShadow: isSelected 
-                  ? '0 0 20px rgba(180, 255, 0, 0.6), 0 0 40px rgba(180, 255, 0, 0.3)' 
-                  : '0 0 0 transparent',
               }}
-              transition={{ delay: index * 0.05 }}
+              transition={{ 
+                delay: Math.min(index * 0.03, 0.3),
+                duration: 0.2,
+                ease: [0.4, 0, 0.2, 1],
+              }}
               onClick={() => onGameSelect(game)}
               style={{
                 flexShrink: 0,
-                width: '72px',
-                height: '72px',
-                borderRadius: '10px',
+                width: '120px',
+                height: '120px',
+                borderRadius: '12px',
                 overflow: 'hidden',
                 cursor: 'pointer',
-                border: isSelected ? '2.5px solid #b4ff00' : '2px solid transparent',
-                transition: 'all 0.3s ease',
+                border: isSelected ? `3px solid ${colors.accent}` : '2px solid transparent',
                 scrollSnapAlign: 'start',
                 position: 'relative',
                 pointerEvents: 'auto',
                 zIndex: 11,
+                willChange: 'transform',
+                transform: 'translateZ(0)', // GPU acceleration
               }}
               className="hero-carousel-item"
               whileHover={{ 
-                scale: 1.15,
-                boxShadow: '0 0 25px rgba(180, 255, 0, 0.4)',
+                scale: 1.1,
+                transition: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
               }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.98 }}
             >
               <img
                 src={game.image}
@@ -200,18 +211,36 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
-                  transition: 'transform 0.3s ease',
+                  willChange: 'transform',
+                  transform: 'translateZ(0)', // GPU acceleration
                 }}
+                loading="lazy"
               />
               {isSelected && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2 }}
                   style={{
                     position: 'absolute',
                     inset: 0,
-                    background: 'linear-gradient(135deg, rgba(180, 255, 0, 0.2) 0%, transparent 100%)',
+                    background: 'linear-gradient(135deg, rgba(0, 200, 194, 0.2) 0%, transparent 100%)',
                     pointerEvents: 'none',
+                    willChange: 'opacity',
+                  }}
+                />
+              )}
+              {/* Optimized box-shadow using pseudo-element for selected state */}
+              {isSelected && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: '-4px',
+                    borderRadius: '16px',
+                    boxShadow: '0 0 20px rgba(0, 200, 194, 0.6), 0 0 40px rgba(0, 200, 194, 0.3)',
+                    pointerEvents: 'none',
+                    zIndex: -1,
+                    willChange: 'opacity',
                   }}
                 />
               )}
@@ -224,8 +253,9 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+          transition={{ duration: 0.2 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={scrollRight}
           onMouseEnter={stopAutoPlay}
           onMouseLeave={() => autoPlay && startAutoPlay()}
@@ -233,7 +263,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
             position: 'absolute',
             right: '8px',
             top: '50%',
-            transform: 'translateY(-50%)',
+            transform: 'translateY(-50%) translateZ(0)',
             zIndex: 20,
             backgroundColor: 'rgba(0, 0, 0, 0.6)',
             color: '#fff',
@@ -244,6 +274,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            willChange: 'transform',
           }}
           aria-label="Next"
         >

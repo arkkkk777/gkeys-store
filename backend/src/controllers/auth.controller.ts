@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
-import { register, login } from '../services/auth.service';
+import { register, login, refreshToken } from '../services/auth.service';
 import { RegisterRequest, LoginRequest } from '../types/auth';
 import { AppError } from '../middleware/errorHandler';
 
@@ -70,10 +70,12 @@ export const refreshTokenController = async (
       throw error;
     }
 
-    // TODO: Implement refresh token logic
+    const { refreshToken: refreshTokenString } = req.body;
+    const result = await refreshToken(refreshTokenString);
+
     res.status(200).json({
       success: true,
-      message: 'Refresh token endpoint - to be implemented',
+      data: result,
     });
   } catch (error) {
     next(error);

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { colors } from "@/styles/design-tokens";
 
 interface ClickSparkProps extends React.HTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ const ClickSpark = React.forwardRef<HTMLButtonElement, ClickSparkProps>(
   (
     {
       children,
-      color = "#b4ff00",
+      color = colors.accent,
       sparkCount = 8,
       className,
       onClick,

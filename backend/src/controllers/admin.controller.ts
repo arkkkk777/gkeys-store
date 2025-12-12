@@ -151,12 +151,170 @@ export const syncG2AController = async (
 ) => {
   try {
     const { syncG2ACatalog } = await import('../services/g2a.service');
-    await syncG2ACatalog();
+    const { fullSync, productIds, categories, includeRelationships } = req.body || {};
+    
+    const result = await syncG2ACatalog({
+      fullSync: fullSync === true,
+      productIds: Array.isArray(productIds) ? productIds : undefined,
+      categories: Array.isArray(categories) ? categories : undefined,
+      includeRelationships: includeRelationships === true,
+    });
 
     res.status(200).json({
       success: true,
-      message: 'G2A catalog sync started',
+      message: 'G2A catalog sync completed',
+      data: {
+        synced: result.added + result.updated,
+        added: result.added,
+        updated: result.updated,
+        removed: result.removed,
+        categoriesCreated: result.categoriesCreated,
+        genresCreated: result.genresCreated,
+        platformsCreated: result.platformsCreated,
+        errors: result.errors,
+      },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getG2AStatusController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { getG2ASyncStatus } = await import('../services/g2a.service');
+    const status = await getG2ASyncStatus();
+
+    res.status(200).json({
+      success: true,
+      data: status,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const syncG2ACategoriesController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { syncG2ACategories } = await import('../services/g2a.service');
+    const result = await syncG2ACategories();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        categories: result.categories.map(c => ({
+          id: c.slug, // Using slug as identifier for response
+          name: c.name,
+          slug: c.slug,
+        })),
+        created: result.created,
+        errors: result.errors,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const syncG2AGenresController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { syncG2AGenres } = await import('../services/g2a.service');
+    const result = await syncG2AGenres();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        genres: result.genres.map(g => ({
+          id: g.slug, // Using slug as identifier for response
+          name: g.name,
+          slug: g.slug,
+        })),
+        created: result.created,
+        errors: result.errors,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const syncG2APlatformsController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { syncG2APlatforms } = await import('../services/g2a.service');
+    const result = await syncG2APlatforms();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        platforms: result.platforms.map(p => ({
+          id: p.slug, // Using slug as identifier for response
+          name: p.name,
+          slug: p.slug,
+        })),
+        created: result.created,
+        errors: result.errors,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getG2ASyncProgressController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { getG2ASyncProgress } = await import('../services/g2a.service');
+    const progress = await getG2ASyncProgress();
+
+    res.status(200).json({
+      success: true,
+      data: progress,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const testG2AConnectionController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { testConnection } = await import('../services/g2a.service');
+    const result = await testConnection();
+
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.details,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.details,
+      });
+    }
   } catch (error) {
     next(error);
   }

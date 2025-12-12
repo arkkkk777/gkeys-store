@@ -3,6 +3,7 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { colors } from "@/styles/design-tokens";
 
 interface AuroraProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration' | 'onDragStart' | 'onDrag' | 'onDragEnd'> {
   className?: string;
@@ -14,7 +15,7 @@ const Aurora = React.forwardRef<HTMLDivElement, AuroraProps>(
   (
     {
       className,
-      color = "#b4ff00",
+      color = colors.accent,
       intensity = 0.3,
       ...props
     },

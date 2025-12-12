@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 const theme = {
   colors: {
-    primary: '#00FF66',
+    primary: '#00C8C2',
     surface: '#1A1A1A',
     text: '#FFFFFF',
     textMuted: '#666666',

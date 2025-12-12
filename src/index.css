@@ -7,6 +7,46 @@
 
 @layer base {
   :root {
+    /* Design System Tokens - Primary source of truth */
+    --design-primary: #00C8C2;
+    --design-primary-dark: #00CC52;
+    --design-accent: #00C8C2;
+    --design-background: #0D0D0D;
+    --design-surface: #1A1A1A;
+    --design-surface-light: #2A2A2A;
+    --design-surface-hover: #333333;
+    --design-text: #FFFFFF;
+    --design-text-secondary: #999999;
+    --design-text-muted: #666666;
+    --design-border: #333333;
+    --design-error: #FF4444;
+    --design-warning: #FFAA00;
+    --design-success: #00C8C2;
+    --design-discount: #FF4444;
+    
+    --design-spacing-xs: 4px;
+    --design-spacing-sm: 8px;
+    --design-spacing-md: 16px;
+    --design-spacing-lg: 24px;
+    --design-spacing-xl: 32px;
+    --design-spacing-xxl: 48px;
+    
+    --design-radius-sm: 4px;
+    --design-radius-md: 8px;
+    --design-radius-lg: 12px;
+    --design-radius-xl: 16px;
+    --design-radius-full: 9999px;
+    
+    --design-breakpoint-mobile: 320px;
+    --design-breakpoint-tablet: 768px;
+    --design-breakpoint-desktop: 1024px;
+    --design-breakpoint-wide: 1280px;
+    
+    --design-animation-fast: 150ms;
+    --design-animation-standard: 200ms;
+    --design-animation-slow: 300ms;
+    
+    /* shadcn/ui colors (for compatibility) */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -35,6 +75,24 @@
   }
 
   .dark {
+    /* Design System Tokens - Dark theme uses same values (dark theme is default) */
+    --design-primary: #00C8C2;
+    --design-primary-dark: #00CC52;
+    --design-accent: #00C8C2;
+    --design-background: #0D0D0D;
+    --design-surface: #1A1A1A;
+    --design-surface-light: #2A2A2A;
+    --design-surface-hover: #333333;
+    --design-text: #FFFFFF;
+    --design-text-secondary: #999999;
+    --design-text-muted: #666666;
+    --design-border: #333333;
+    --design-error: #FF4444;
+    --design-warning: #FFAA00;
+    --design-success: #00C8C2;
+    --design-discount: #FF4444;
+    
+    /* shadcn/ui colors (for compatibility) */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
@@ -221,7 +279,7 @@
 }
 
 .hover-glow:hover {
-  box-shadow: 0 0 20px rgba(0, 255, 102, 0.3);
+  box-shadow: 0 0 20px rgba(0, 200, 194, 0.3);
   transition: box-shadow 0.2s ease-in-out;
 }
 

@@ -15,6 +15,11 @@ export interface GameFilters {
   sort?: 'popular' | 'newest' | 'price-asc' | 'price-desc';
   page?: number;
   pageSize?: number;
+  // Extended filters for advanced search
+  ratingMin?: number;           // Minimum rating (0-100)
+  releaseDateFrom?: number;     // Start year
+  releaseDateTo?: number;       // End year
+  languages?: string[];          // Language codes (ISO 639-1)
 }
 
 export interface PaginatedResponse<T> {
@@ -53,5 +58,20 @@ export interface GameResponse {
   genres: string[];
   tags: string[];
   categories: string[];
+  // Extended fields for advanced filters
+  ratingCritic?: number;        // Critic rating (0-100)
+  ratingUser?: number;          // User rating (0-100)
+  languages?: string[];         // Supported language codes (ISO 639-1)
+}
+
+/**
+ * Represents a search suggestion for autocomplete
+ */
+export interface SearchSuggestion {
+  id: string;
+  title: string;
+  image: string;
+  slug: string;
+  relevanceScore: number;
 }
 

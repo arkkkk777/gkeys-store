@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 const theme = {
   colors: {
-    primary: '#00FF66',
+    primary: '#00C8C2',
     background: '#0D0D0D',
     surface: '#1A1A1A',
     surfaceLight: '#2A2A2A',

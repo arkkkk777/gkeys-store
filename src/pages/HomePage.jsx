@@ -1,16 +1,15 @@
-// Home Page - GKEYS Gaming Store
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Icons } from '../components/UIKit';
-import { HeroCarousel } from '../components/home/HeroCarousel';
-import { HeroContent } from '../components/home/HeroContent';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import HeroSection from '../components/HeroSection';
+import GameSection from '../components/GameSection';
+import GameCard from '../components/GameCard';
 import { gamesApi } from '../services/gamesApi';
-import { useAuth } from '../hooks/useAuth';
-
+import { homepageSections } from '../config/homepageSections';
 
 const theme = {
   colors: {
-    primary: '#00FF66',
+    primary: '#00C8C2',
     background: '#0D0D0D',
     surface: '#1A1A1A',
     surfaceLight: '#2A2A2A',
@@ -19,639 +18,500 @@ const theme = {
     textMuted: '#666666',
     border: '#333333',
   },
-  spacing: { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px' },
-  borderRadius: { sm: '4px', md: '8px', lg: '12px', xl: '16px', full: '9999px' },
 };
 
-// Mock games fallback (will be replaced by API)
-const mockGames = [];
-
-const categories = ['All', 'Adventure', 'Action', 'Sci-fi', 'Open World', 'Horror', 'RPG', 'Sandbox'];
-
-const responsiveCSS = `
-  @media (max-width: 768px) {
-    .desktop-nav { display: none !important; }
-    .desktop-search { display: none !important; }
-    .desktop-login { display: none !important; }
-    .mobile-menu-btn { display: flex !important; }
-    .hero-section { height: 100vh !important; min-height: 500px !important; padding: 0 16px !important; }
-    .hero-content-wrapper { margin-top: 75px !important; }
-    .hero-title h1 { font-size: 48px !important; }
-    .hero-title { font-size: 28px !important; line-height: 1.2 !important; }
-    .hero-title h1 { font-size: 28px !important; }
-    .hero-price { font-size: 20px !important; }
-    .hero-carousel-container { padding: 10px 16px !important; }
-    .hero-carousel-item { width: 56px !important; height: 56px !important; }
-    .game-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
-    .section-title { font-size: 20px !important; }
-    .container { padding: 0 16px !important; }
-  }
-  @media (max-width: 480px) {
-    .hero-section { height: 100vh !important; min-height: 450px !important; padding: 0 12px !important; }
-    .hero-content-wrapper { margin-top: 70px !important; }
-    .hero-title h1 { font-size: 36px !important; margin-bottom: 12px !important; }
-    .hero-price { font-size: 18px !important; }
-    .hero-buttons { flex-direction: column !important; width: 100% !important; gap: 8px !important; }
-    .hero-buttons button { width: 100% !important; }
-    .game-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-    .category-tabs { 
-      overflow-x: auto !important; 
-      flex-wrap: nowrap !important; 
-      padding-bottom: 8px !important;
-      -webkit-overflow-scrolling: touch !important;
-      scrollbar-width: thin !important;
-      margin-left: -16px !important;
-      margin-right: -16px !important;
-      padding-left: 16px !important;
-      padding-right: 16px !important;
-    }
-    .category-tabs::-webkit-scrollbar { height: 4px !important; }
-    .category-tabs button { padding: 6px 12px !important; font-size: 13px !important; white-space: nowrap !important; }
-    .section-title { font-size: 18px !important; }
-    .section { margin-bottom: 32px !important; }
-    .section-header { margin-bottom: 16px !important; }
-    .promo-section { padding: 20px !important; margin-bottom: 32px !important; }
-    .promo-title { font-size: 18px !important; }
-    .promo-subtitle { font-size: 13px !important; }
-    .current-price { font-size: 14px !important; }
-    .original-price { font-size: 12px !important; }
-  }
-  @media (max-width: 374px) {
-    .hero-section { height: 100vh !important; min-height: 400px !important; }
-    .hero-title h1 { font-size: 28px !important; }
-    .hero-price { font-size: 16px !important; }
-    .game-grid { gap: 8px !important; }
-    .container { padding: 0 12px !important; }
-  }
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .game-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 20px !important; }
-  }
-  @media (min-width: 1025px) {
-    .game-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important; gap: 24px !important; }
-  }
-`;
-
-const styles = {
-  hero: {
-    position: 'relative',
-    height: '500px',
-    backgroundImage: 'linear-gradient(to right, rgba(13,13,13,0.9), rgba(13,13,13,0.3)), url(https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1920&h=500&fit=crop)',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    display: 'flex',
-    alignItems: 'center',
-  },
-  heroContent: {
-    maxWidth: '500px',
-  },
-  heroNew: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    backgroundColor: theme.colors.primary,
-    color: '#000',
-    padding: '4px 12px',
-    borderRadius: '50px',
-    fontSize: '12px',
-    fontWeight: '600',
-    marginBottom: '16px',
-  },
-  heroTitle: {
-    fontSize: '48px',
-    fontWeight: '700',
-    marginBottom: '16px',
-    lineHeight: '1.1',
-  },
-  heroDescription: {
-    color: theme.colors.textSecondary,
-    fontSize: '16px',
-    marginBottom: '24px',
-    lineHeight: '1.6',
-  },
-  heroPrice: {
-    fontSize: '32px',
-    fontWeight: '700',
-    marginBottom: '24px',
-  },
-  heroButtons: {
-    display: 'flex',
-    gap: '12px',
-  },
-  buyButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '14px 32px',
-    backgroundColor: theme.colors.primary,
-    color: '#000',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  moreInfoButton: {
-    padding: '14px 32px',
-    backgroundColor: theme.colors.surface,
-    color: theme.colors.text,
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  container: {
-    maxWidth: '1280px',
-    margin: '0 auto',
-    padding: '0 24px',
-  },
-  section: {
-    marginBottom: '48px',
-  },
-  sectionHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '24px',
-  },
-  sectionTitle: {
-    fontSize: '24px',
-    fontWeight: '600',
-  },
-  sectionLink: {
-    color: theme.colors.primary,
-    fontSize: '14px',
-    textDecoration: 'none',
-  },
-  categoryTabs: {
-    display: 'flex',
-    gap: '8px',
-    marginBottom: '24px',
-    flexWrap: 'wrap',
-    overflowX: 'auto',
-    WebkitOverflowScrolling: 'touch',
-    scrollbarWidth: 'thin',
-  },
-  categoryTab: (isActive) => ({
-    padding: '8px 16px',
-    backgroundColor: isActive ? theme.colors.surface : 'transparent',
-    border: `1px solid ${isActive ? theme.colors.border : 'transparent'}`,
-    borderRadius: '8px',
-    color: isActive ? theme.colors.text : theme.colors.textSecondary,
-    fontSize: '14px',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-    flexShrink: 0,
-  }),
-  gameGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-    gap: '24px',
-  },
-  gameCard: {
-    cursor: 'pointer',
-    transition: 'transform 0.2s ease',
-  },
-  gameImage: {
-    position: 'relative',
-    width: '100%',
-    aspectRatio: '3/4',
-    borderRadius: '12px',
-    overflow: 'hidden',
-    marginBottom: '8px',
-  },
-  gameImageImg: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
-  gameBadge: {
-    position: 'absolute',
-    top: '8px',
-    left: '8px',
-    backgroundColor: theme.colors.primary,
-    color: '#000',
-    padding: '4px 8px',
-    borderRadius: '4px',
-    fontSize: '11px',
-    fontWeight: '600',
-  },
-  gamePrice: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  currentPrice: {
-    fontSize: '16px',
-    fontWeight: '600',
-  },
-  originalPrice: {
-    fontSize: '14px',
-    color: theme.colors.textMuted,
-    textDecoration: 'line-through',
-  },
-  discount: {
-    backgroundColor: theme.colors.primary,
-    color: '#000',
-    padding: '2px 6px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    fontWeight: '600',
-  },
-  promoSection: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: '16px',
-    padding: '32px',
-    marginBottom: '48px',
-  },
-  promoTitle: {
-    fontSize: '20px',
-    fontWeight: '600',
-    marginBottom: '8px',
-  },
-  promoSubtitle: {
-    color: theme.colors.textSecondary,
-    fontSize: '14px',
-    marginBottom: '24px',
-  },
-  checkAllButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '12px 24px',
-    backgroundColor: theme.colors.primary,
-    color: '#000',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    marginTop: '16px',
-  },
-  footer: {
-    backgroundColor: theme.colors.background,
-    borderTop: `1px solid ${theme.colors.border}`,
-    padding: '48px 24px',
-    marginTop: '48px',
-  },
-  footerTop: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '24px',
-    marginBottom: '32px',
-    maxWidth: '1280px',
-    margin: '0 auto 32px',
-  },
-  footerNav: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '24px',
-  },
-  footerLink: {
-    color: theme.colors.textSecondary,
-    textDecoration: 'none',
-    fontSize: '14px',
-  },
-  footerSocial: {
-    display: 'flex',
-    gap: '16px',
-  },
-  footerBottom: {
-    textAlign: 'center',
-    paddingTop: '32px',
-    borderTop: `1px solid ${theme.colors.border}`,
-    maxWidth: '1280px',
-    margin: '0 auto',
-  },
-  copyright: {
-    color: theme.colors.textMuted,
-    fontSize: '12px',
-    lineHeight: '1.8',
-  },
-  mobileMenuButton: {
-    display: 'none',
-    background: 'none',
-    border: 'none',
-    color: theme.colors.text,
-    cursor: 'pointer',
-  },
-};
-
-const GameCard = ({ game }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const badges = [];
-  if (game.isBestSeller) badges.push('Best Seller');
-  if (game.isNew) badges.push('New');
-  if (game.isPreorder) badges.push('Preorder');
-  
-  return (
-    <Link to={`/game/${game.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-      <div 
-        style={{ 
-          ...styles.gameCard, 
-          transform: isHovered ? 'translateY(-4px)' : 'none' 
-        }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <div style={styles.gameImage}>
-          <img src={game.image} alt={game.title} style={styles.gameImageImg} />
-          {badges.length > 0 && (
-            <span style={styles.gameBadge}>{badges[0]}</span>
-          )}
-        </div>
-        <div style={styles.gamePrice}>
-          <span style={styles.currentPrice}>{game.price.toFixed(2)}{game.currency || '€'}</span>
-          {game.originalPrice && game.discount && (
-            <>
-              <span style={styles.originalPrice}>{game.originalPrice.toFixed(2)}{game.currency || '€'}</span>
-              <span style={styles.discount}>-{game.discount}%</span>
-            </>
-          )}
-        </div>
-      </div>
-    </Link>
-  );
-};
-
-const GameSection = ({ title, games, showLink = true, onCheckAll }) => (
-  <section style={styles.section}>
-    <div style={styles.sectionHeader}>
-      <h2 style={styles.sectionTitle}>{title}</h2>
-      {showLink && (
-        <Link 
-          to={onCheckAll ? '#' : '/catalog'} 
-          style={styles.sectionLink}
-          onClick={(e) => {
-            if (onCheckAll) {
-              e.preventDefault();
-              onCheckAll();
-            }
-          }}
-        >
-          Check all
-        </Link>
-      )}
-    </div>
-    <div style={styles.gameGrid} className="game-grid">
-      {games.length > 0 ? (
-        games.map((game) => (
-          <GameCard key={game.id} game={game} />
-        ))
-      ) : (
-        <div style={{ color: theme.colors.textSecondary, padding: '24px' }}>No games available</div>
-      )}
-    </div>
-  </section>
+// Sparkle icon
+const SparkleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-label="Sparkle">
+    <title>Sparkle</title>
+    <path d="M12 2L14 8L20 10L14 12L12 18L10 12L4 10L10 8L12 2Z" fill="#FFD93D" />
+  </svg>
 );
 
-export default function HomePage() {
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [heroGames, setHeroGames] = useState([]);
-  const [selectedGame, setSelectedGame] = useState(null);
-  const [bestSellers, setBestSellers] = useState([]);
-  const [newInCatalog, setNewInCatalog] = useState([]);
-  const [preorders, setPreorders] = useState([]);
-  const [newGames, setNewGames] = useState([]);
-  const [randomGames, setRandomGames] = useState([]);
-  const [genres, setGenres] = useState([]);
-  const [genreGames, setGenreGames] = useState({});
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-  const { user } = useAuth();
+// Chevron icons for carousel
+const ChevronLeftIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
 
-  // Load hero games (random games for carousel)
-  useEffect(() => {
-    const loadHeroGames = async () => {
-      try {
-        const games = await gamesApi.getRandomGames(15);
-        setHeroGames(games);
-        if (games.length > 0 && !selectedGame) {
-          setSelectedGame(games[0]);
-        }
-      } catch (error) {
-        console.error('Failed to load hero games:', error);
-      }
-    };
-    loadHeroGames();
-  }, [selectedGame]);
+const ChevronRightIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
 
-  // Load best sellers
-  useEffect(() => {
-    const loadBestSellers = async () => {
-      try {
-        const genre = activeCategory === 'All' ? undefined : activeCategory.toLowerCase();
-        const games = await gamesApi.getBestSellers(genre);
-        setBestSellers(games.slice(0, 8));
-      } catch (error) {
-        console.error('Failed to load best sellers:', error);
-      }
-    };
-    loadBestSellers();
-  }, [activeCategory]);
+// Random Picks Section Component
+const RandomPicksSection = ({ games, loading }) => {
+  const scrollRef = useRef(null);
 
-  // Load other sections
-  useEffect(() => {
-    const loadSections = async () => {
-      setLoading(true);
-      try {
-        const [newCatalog, preordersData, newGamesData, genresData] = await Promise.all([
-          gamesApi.getNewInCatalog(),
-          gamesApi.getPreorders(),
-          gamesApi.getNewGames(),
-          gamesApi.getAllGenres(),
-        ]);
-        setNewInCatalog(newCatalog.slice(0, 15));
-        setPreorders(preordersData);
-        setNewGames(newGamesData.slice(0, 10));
-        setGenres(genresData);
-      } catch (error) {
-        console.error('Failed to load sections:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadSections();
-  }, []);
-
-  // Load random games - reloads on each page refresh
-  useEffect(() => {
-    const loadRandomGames = async () => {
-      try {
-        const games = await gamesApi.getRandomGames(10);
-        setRandomGames(games);
-      } catch (error) {
-        console.error('Failed to load random games:', error);
-      }
-    };
-    loadRandomGames();
-  }, []); // Empty deps - reloads on mount (page refresh)
-
-  // Load games for each genre
-  useEffect(() => {
-    const loadGenreGames = async () => {
-      if (genres.length === 0) return;
-      
-      try {
-        const genreGamesData = {};
-        for (const genre of genres.slice(0, 5)) { // Load first 5 genres
-          try {
-            const games = await gamesApi.getGamesByGenre(genre.slug);
-            genreGamesData[genre.slug] = games.slice(0, 20);
-          } catch (error) {
-            console.error(`Failed to load games for genre ${genre.slug}:`, error);
-          }
-        }
-        setGenreGames(genreGamesData);
-      } catch (error) {
-        console.error('Failed to load genre games:', error);
-      }
-    };
-    loadGenreGames();
-  }, [genres]);
-
-  const handleGameSelect = (game) => {
-    setSelectedGame(game);
-  };
-
-  const handleBuyClick = () => {
-    if (selectedGame) {
-      // Add to cart logic here
-      navigate(`/game/${selectedGame.slug}`);
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
     }
   };
 
-  const handleWishlistClick = () => {
-    if (selectedGame) {
-      // Add to wishlist logic here
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
     }
+  };
+
+  // Background image - gamepad controller pattern
+  const backgroundImageStyle = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundImage: `url("data:image/svg+xml,%3Csvg width='300' height='300' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='gamepad' x='0' y='0' width='300' height='300' patternUnits='userSpaceOnUse'%3E%3Cg opacity='0.2'%3E%3Ccircle cx='75' cy='75' r='20' fill='%23333'/%3E%3Ccircle cx='225' cy='75' r='20' fill='%23333'/%3E%3Crect x='90' y='150' width='120' height='60' rx='12' fill='%23333'/%3E%3Ccircle cx='120' cy='180' r='12' fill='%23333'/%3E%3Ccircle cx='180' cy='180' r='12' fill='%23333'/%3E%3Crect x='105' y='165' width='30' height='30' rx='4' fill='%23333'/%3E%3Crect x='165' y='165' width='30' height='30' rx='4' fill='%23333'/%3E%3Cpath d='M 90 150 L 90 120 L 120 120 L 120 150 Z' fill='%23333'/%3E%3Cpath d='M 180 120 L 210 120 L 210 150 L 180 150 Z' fill='%23333'/%3E%3C/g%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23gamepad)'/%3E%3C/svg%3E")`,
+    backgroundSize: '300px 300px',
+    opacity: 0.2,
+    zIndex: 0,
   };
 
   return (
-    <>
-      <style>{responsiveCSS}</style>
-      {/* Hero Section */}
-      <section style={{ position: 'relative', backgroundColor: theme.colors.background }}>
-          <div style={{ 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            zIndex: 10,
-            padding: '12px 20px',
-            backgroundColor: 'rgba(13, 13, 13, 0.85)',
-            backdropFilter: 'blur(8px)',
-            pointerEvents: 'auto',
-          }} className="hero-carousel-container">
-            <HeroCarousel
-              games={heroGames}
-              selectedGame={selectedGame}
-              onGameSelect={handleGameSelect}
-              autoPlay={true}
-              autoPlayInterval={5000}
-            />
-          </div>
-          <div style={{ marginTop: '90px', position: 'relative' }} className="hero-content-wrapper">
-            <HeroContent
-              game={selectedGame}
-              onBuyClick={handleBuyClick}
-              onWishlistClick={handleWishlistClick}
-            />
-          </div>
-        </section>
+    <section
+      style={{
+        padding: '40px 0 60px',
+        position: 'relative',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '1400px',
+          margin: '0 auto',
+          padding: '0 24px',
+        }}
+      >
+        <div
+          style={{
+            position: 'relative',
+            backgroundColor: theme.colors.surface,
+            borderRadius: '16px',
+            padding: '40px 32px',
+            border: `1px solid ${theme.colors.border}`,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Background Pattern */}
+          <div style={backgroundImageStyle} />
 
-        {/* Main Content */}
-        <main style={styles.container}>
-          {/* Best Sellers */}
-          <section style={{ ...styles.section, marginTop: '48px' }}>
-            <div style={styles.sectionHeader}>
-              <h2 style={styles.sectionTitle}>Best Sellers</h2>
-              <Link to="/catalog" style={styles.sectionLink}>Check all</Link>
-            </div>
-            <div style={styles.categoryTabs} className="category-tabs">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  style={styles.categoryTab(activeCategory === cat)}
-                  onClick={() => setActiveCategory(cat)}
+          {/* Content */}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <h2
+              style={{
+                fontSize: '32px',
+                fontWeight: '700',
+                color: theme.colors.text,
+                margin: '0 0 8px 0',
+              }}
+            >
+              Hit me with something good
+            </h2>
+            <p
+              style={{
+                fontSize: '14px',
+                color: theme.colors.primary,
+                margin: '0 0 32px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <SparkleIcon />
+              Surprisingly awesome random picks
+            </p>
+
+            {loading ? (
+              <div style={{ color: theme.colors.textSecondary, textAlign: 'center', padding: '40px' }}>
+                Loading...
+              </div>
+            ) : games.length > 0 ? (
+              <div style={{ position: 'relative' }}>
+                {/* Scroll Buttons */}
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={scrollLeft}
+                  style={{
+                    position: 'absolute',
+                    left: '-20px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: theme.colors.surface,
+                    border: `1px solid ${theme.colors.border}`,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: theme.colors.text,
+                    zIndex: 10,
+                  }}
+                  className="carousel-btn-left"
                 >
-                  {cat}
-                </button>
-              ))}
-            </div>
-            <div style={styles.gameGrid} className="game-grid">
-              {loading ? (
-                <div style={{ color: theme.colors.textSecondary, padding: '24px' }}>Loading...</div>
-              ) : bestSellers.length > 0 ? (
-                bestSellers.map((game) => (
-                  <GameCard key={game.id} game={game} />
-                ))
-              ) : (
-                <div style={{ color: theme.colors.textSecondary, padding: '24px' }}>No games available</div>
-              )}
-            </div>
-          </section>
+                  <ChevronLeftIcon />
+                </motion.button>
 
-          {/* New in Catalog */}
-          <GameSection title="New in the Catalog" games={newInCatalog.slice(0, 15)} />
+                <div
+                  ref={scrollRef}
+                  style={{
+                    display: 'flex',
+                    gap: '16px',
+                    overflowX: 'auto',
+                    scrollSnapType: 'x mandatory',
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none',
+                    paddingBottom: '8px',
+                  }}
+                  className="carousel-scroll"
+                >
+                  {games.map((game) => (
+                    <div
+                      key={game.id}
+                      style={{
+                        minWidth: '200px',
+                        maxWidth: '200px',
+                        flexShrink: 0,
+                        scrollSnapAlign: 'start',
+                      }}
+                    >
+                      <GameCard game={game} size="medium" />
+                    </div>
+                  ))}
+                </div>
 
-          {/* Preorders */}
-          <GameSection title="Preorders" games={preorders} />
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={scrollRight}
+                  style={{
+                    position: 'absolute',
+                    right: '-20px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: theme.colors.surface,
+                    border: `1px solid ${theme.colors.border}`,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: theme.colors.text,
+                    zIndex: 10,
+                  }}
+                  className="carousel-btn-right"
+                >
+                  <ChevronRightIcon />
+                </motion.button>
+              </div>
+            ) : (
+              <p style={{ color: theme.colors.textSecondary, textAlign: 'center', padding: '40px' }}>
+                No games available at the moment.
+              </p>
+            )}
 
-          {/* New Games Promo */}
-          <div style={styles.promoSection}>
-            <h3 style={styles.promoTitle}>New games</h3>
-            <p style={styles.promoSubtitle}>There's nothing more exciting than trying something new</p>
-            <div style={styles.gameGrid} className="game-grid">
-              {newGames.length > 0 ? (
-                newGames.slice(0, 10).map((game) => (
-                  <GameCard key={game.id} game={game} />
-                ))
-              ) : (
-                <div style={{ color: theme.colors.textSecondary, padding: '24px' }}>No games available</div>
-              )}
+            <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'center' }}>
+              <Link to="/catalog?sort=random" style={{ textDecoration: 'none' }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: theme.colors.primary,
+                    color: '#000',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Check all
+                </motion.button>
+              </Link>
             </div>
-            <Link to="/catalog">
-              <button type="button" style={styles.checkAllButton}>Check all</button>
-            </Link>
+          </div>
+        </div>
+      </div>
+
+      <style>
+        {`
+          .carousel-scroll::-webkit-scrollbar {
+            display: none;
+          }
+          @media (max-width: 600px) {
+            .carousel-btn-left, .carousel-btn-right {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+    </section>
+  );
+};
+
+/**
+ * Fetch data for a single section based on its configuration
+ */
+const fetchSectionData = async (section) => {
+  try {
+    const { dataSource } = section;
+    let games = [];
+
+    if (dataSource.type === 'api' && dataSource.method) {
+      // Type-safe method access
+      const method = gamesApi[dataSource.method];
+      if (!method || typeof method !== 'function') {
+        throw new Error(`Method ${dataSource.method} not found in gamesApi`);
+      }
+
+      if (dataSource.params) {
+        // Call method with params (e.g., getGamesByGenre('Action'))
+        const paramValues = Object.values(dataSource.params);
+        games = await method(...paramValues);
+      } else {
+        // Call method without params (e.g., getBestSellers())
+        games = await method();
+      }
+    } else if (dataSource.type === 'collection') {
+      // Fetch collections and filter by collectionId
+      const collections = await gamesApi.getCollections();
+      const collection = collections.find(
+        (c) =>
+          c.id === dataSource.collectionId ||
+          c.title.toLowerCase().includes(dataSource.collectionId?.toLowerCase() || '') ||
+          c.value.toLowerCase().includes(dataSource.collectionId?.toLowerCase() || '')
+      );
+      games = collection?.games || [];
+    }
+
+    return {
+      success: true,
+      games: Array.isArray(games) ? games : [],
+      error: null,
+    };
+  } catch (error) {
+    console.warn(`Failed to fetch data for section ${section.id}:`, error);
+    return {
+      success: false,
+      games: [],
+      error: error?.message || 'Failed to load games',
+    };
+  }
+};
+
+export default function HomePage() {
+  // Initialize state for all sections
+  const [sectionStates, setSectionStates] = useState(() => {
+    const initialState = {};
+    homepageSections.forEach((section) => {
+      initialState[section.id] = {
+        id: section.id,
+        games: [],
+        loading: true,
+        error: null,
+        lastFetched: null,
+      };
+    });
+    // Add random picks section state
+    initialState['random-picks'] = {
+      id: 'random-picks',
+      games: [],
+      loading: true,
+      error: null,
+      lastFetched: null,
+    };
+    return initialState;
+  });
+
+  const [randomPicks, setRandomPicks] = useState([]);
+  const [randomPicksLoading, setRandomPicksLoading] = useState(true);
+
+  // Fetch data for all sections in parallel
+  useEffect(() => {
+    const fetchAllSections = async () => {
+      // Fetch regular sections
+      const sectionPromises = homepageSections.map((section) =>
+        fetchSectionData(section).then((result) => ({
+          sectionId: section.id,
+          ...result,
+        }))
+      );
+
+      // Fetch random picks separately (10 games as per spec)
+      const randomPicksPromise = gamesApi
+        .getRandomGames(10)
+        .then((games) => ({ success: true, games, error: null }))
+        .catch((error) => ({
+          success: false,
+          games: [],
+          error: error.message || 'Failed to load random picks',
+        }));
+
+      // Wait for all promises to settle
+      const results = await Promise.allSettled([...sectionPromises, randomPicksPromise]);
+
+      // Update section states
+      results.forEach((result, index) => {
+        if (index < sectionPromises.length) {
+          // Regular section
+          const { sectionId, success, games, error } =
+            result.status === 'fulfilled' ? result.value : { sectionId: homepageSections[index].id, success: false, games: [], error: 'Failed to fetch' };
+
+          setSectionStates((prev) => ({
+            ...prev,
+            [sectionId]: {
+              id: sectionId,
+              games,
+              loading: false,
+              error: success ? null : error,
+              lastFetched: success ? Date.now() : null,
+            },
+          }));
+        } else {
+          // Random picks
+          const { success, games, error } =
+            result.status === 'fulfilled' ? result.value : { success: false, games: [], error: 'Failed to fetch' };
+
+          setRandomPicks(games);
+          setRandomPicksLoading(false);
+          // Also mark the random-picks section as finished to unblock the homepage skeleton
+          setSectionStates((prev) => ({
+            ...prev,
+            'random-picks': {
+              ...prev['random-picks'],
+              games,
+              loading: false,
+              error: success ? null : error,
+              lastFetched: success ? Date.now() : null,
+            },
+          }));
+        }
+      });
+    };
+
+    fetchAllSections();
+  }, []);
+
+  // Calculate overall loading state
+  const allLoading = useMemo(() => {
+    return Object.values(sectionStates).some((state) => state.loading) || randomPicksLoading;
+  }, [sectionStates, randomPicksLoading]);
+
+  // Calculate if any section has error
+  const hasErrors = useMemo(() => {
+    return Object.values(sectionStates).some((state) => state.error !== null);
+  }, [sectionStates]);
+
+  // Loading skeleton
+  if (allLoading) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          backgroundColor: theme.colors.background,
+          color: theme.colors.text,
+          padding: '40px 24px',
+        }}
+      >
+        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          {/* Hero Section Skeleton */}
+          <div
+            style={{
+              height: '600px',
+              backgroundColor: theme.colors.surface,
+              borderRadius: '16px',
+              marginBottom: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Loading featured games...
           </div>
 
-          {/* Games by Genre Carousels */}
-          {genres.slice(0, 5).map((genre) => {
-            const games = genreGames[genre.slug] || [];
-            if (games.length === 0) return null;
-            
-            return (
-              <GameSection
-                key={genre.slug}
-                title={genre.name}
-                games={games}
-                showLink={true}
-                onCheckAll={() => navigate(`/catalog?genres=${genre.slug}`)}
+          {/* Game Sections Skeleton */}
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} style={{ marginBottom: '40px' }}>
+              <div
+                style={{
+                  height: '28px',
+                  width: '200px',
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: '8px',
+                  marginBottom: '24px',
+                }}
               />
-            );
-          })}
-
-          {/* Random Games */}
-          <div style={styles.promoSection}>
-            <h3 style={styles.promoTitle}>Random Games</h3>
-            <p style={styles.promoSubtitle}>Discover something new with our random selection</p>
-            <div style={styles.gameGrid} className="game-grid">
-              {randomGames.length > 0 ? (
-                randomGames.map((game) => (
-                  <GameCard key={game.id} game={game} />
-                ))
-              ) : (
-                <div style={{ color: theme.colors.textSecondary, padding: '24px' }}>No games available</div>
-              )}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(6, 1fr)',
+                  gap: '16px',
+                }}
+              >
+                {[1, 2, 3, 4, 5, 6].map((j) => (
+                  <div
+                    key={j}
+                    style={{
+                      aspectRatio: '3/4',
+                      backgroundColor: theme.colors.surface,
+                      borderRadius: '12px',
+                      border: `1px solid ${theme.colors.border}`,
+                    }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        </main>
-    </>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        backgroundColor: theme.colors.background,
+        color: theme.colors.text,
+      }}
+    >
+      {/* Hero Section */}
+      <HeroSection />
+
+      {/* Render all sections from configuration */}
+      {homepageSections.map((section) => {
+        const sectionState = sectionStates[section.id];
+        const games = sectionState?.games || [];
+
+        return (
+          <GameSection
+            key={section.id}
+            title={section.title}
+            subtitle={section.subtitle}
+            description={section.description}
+            games={games}
+            tabs={section.tabs}
+            showCheckAll={section.display.showCheckAll}
+            checkAllLink={section.display.checkAllLink}
+            checkAllText={section.display.checkAllText || 'Check all'}
+            columns={section.display.columns}
+            carousel={section.display.carousel}
+            loading={sectionState?.loading}
+            error={sectionState?.error}
+          />
+        );
+      })}
+
+      {/* Hit me with something good - Random Picks */}
+      <RandomPicksSection games={randomPicks} loading={randomPicksLoading} />
+    </div>
   );
 }
-

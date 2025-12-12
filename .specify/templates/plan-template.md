@@ -31,7 +31,51 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Type Safety First
+- [ ] All code will be fully typed with TypeScript (no `any` without justification)
+- [ ] Type definitions will be comprehensive and accurate
+- [ ] Strict TypeScript configuration will be maintained
+
+### Component-Driven Architecture (Frontend features)
+- [ ] Components will be modular, reusable, and self-contained
+- [ ] Single responsibility principle will be followed
+- [ ] Components will be independently testable
+- [ ] Composition over inheritance will be preferred
+- [ ] Functional components with hooks will be used
+
+### Performance Optimization
+- [ ] Code splitting strategy defined for vendor libraries
+- [ ] Lazy loading planned for routes and heavy components
+- [ ] Image optimization strategy defined
+- [ ] Bundle size target: < 1MB gzipped
+- [ ] Console/debugger removal in production builds
+- [ ] React.memo, useMemo, useCallback usage identified where needed
+
+### User Experience Consistency (Frontend features)
+- [ ] Design system consistency maintained (colors, spacing, typography)
+- [ ] Interactive elements have hover/focus states defined
+- [ ] Animation approach defined (Framer Motion or GSAP)
+- [ ] Responsive design: Mobile-first approach
+- [ ] Accessibility: ARIA labels, keyboard navigation, semantic HTML
+
+### Code Quality Standards
+- [ ] ESLint configuration will be followed
+- [ ] Prettier for code formatting
+- [ ] Meaningful naming conventions defined
+- [ ] Comment strategy for complex logic defined
+- [ ] No commented-out code in production
+
+### Technology Stack Compliance
+- [ ] Frontend: React 19 + TypeScript, Vite 7, Tailwind CSS 3, shadcn/ui, Framer Motion/GSAP
+- [ ] Backend: Node.js + Express, PostgreSQL + Prisma, Full TypeScript
+- [ ] No unauthorized technology additions
+
+### Security Requirements
+- [ ] API authentication strategy defined
+- [ ] Sensitive data handling plan defined
+- [ ] Environment variables usage identified
+- [ ] Input validation strategy (client + server)
+- [ ] XSS/CSRF protection considered
 
 ## Project Structure
 

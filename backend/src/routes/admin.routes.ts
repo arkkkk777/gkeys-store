@@ -7,6 +7,12 @@ import {
   generateFakeDataController,
   exportUserReportController,
   syncG2AController,
+  testG2AConnectionController,
+  getG2AStatusController,
+  syncG2ACategoriesController,
+  syncG2AGenresController,
+  syncG2APlatformsController,
+  getG2ASyncProgressController,
   getGamesController,
   createGameController,
   updateGameController,
@@ -54,7 +60,13 @@ router.delete('/blog/:id', deleteBlogPostController);
 router.get('/orders', getOrdersController);
 router.put('/orders/:id/status', updateOrderStatusController);
 
-// G2A Sync
+// G2A Integration
+router.get('/g2a/test-connection', testG2AConnectionController);
+router.get('/g2a/status', getG2AStatusController);
+router.get('/g2a/sync-progress', getG2ASyncProgressController);
 router.post('/g2a/sync', syncG2AController);
+router.post('/g2a/sync-categories', syncG2ACategoriesController);
+router.post('/g2a/sync-genres', syncG2AGenresController);
+router.post('/g2a/sync-platforms', syncG2APlatformsController);
 
 export default router;

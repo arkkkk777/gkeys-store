@@ -3,11 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icons } from '../components/UIKit';
 import { useAuth } from '../context/AuthContext';
+import { useWishlist } from '../hooks/useWishlist';
+import { useCart } from '../hooks/useCart';
 import { gamesApi } from '../services/gamesApi';
+import { Container } from '@/components/ui/container';
+import { ProfileSidebar } from '@/components/profile/ProfileSidebar';
+import { typography } from '../styles/design-tokens';
 
 const theme = {
   colors: {
-    primary: '#00FF66',
+    primary: '#00C8C2',
     background: '#0D0D0D',
     surface: '#1A1A1A',
     surfaceLight: '#2A2A2A',
@@ -22,10 +27,11 @@ const theme = {
 };
 
 const sidebarItems = [
+  { id: 'profile', label: 'Profile', path: '/profile/orders' },
   { id: 'orders', label: 'Orders', path: '/profile/orders' },
   { id: 'wishlist', label: 'Wishlist', path: '/wishlist' },
   { id: 'balance', label: 'Balance', path: '/profile/balance' },
-  { id: 'edit-profile', label: 'Edit Profile', path: '/profile/edit' },
+  { id: 'edit-profile', label: 'Edit Profile', path: '/profile/edit', badge: '+5' },
 ];
 
 // Mock user stats
@@ -45,8 +51,10 @@ const responsiveCSS = `
     .sidebar-nav { display: flex !important; flex-direction: row !important; overflow-x: auto !important; gap: 8px !important; }
     .sidebar-item { white-space: nowrap !important; padding: 10px 16px !important; }
     .user-stats { display: none !important; }
-    .wishlist-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
-    .random-games-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+    .wishlist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; width: 100% !important; }
+    .wishlist-grid > * { min-width: 0 !important; }
+    .random-games-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; width: 100% !important; }
+    .random-games-grid > * { min-width: 0 !important; }
   }
   @media (max-width: 480px) {
     .wishlist-grid { grid-template-columns: 1fr !important; }
@@ -57,42 +65,33 @@ const responsiveCSS = `
 export default function WishlistPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [wishlist, setWishlist] = useState([]);
+  const { wishlist, loading: wishlistLoading, removeFromWishlist: removeFromWishlistContext } = useWishlist();
+  const { addToCart: addToCartContext } = useCart();
   const [randomGames, setRandomGames] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingRandom, setLoadingRandom] = useState(true);
   const [notification, setNotification] = useState(null);
 
+  // Load random games (8 games that change on refresh)
   useEffect(() => {
-    const loadWishlist = async () => {
-      try {
-        setLoading(true);
-        // Load wishlist from API
-        const games = await gamesApi.getWishlist();
-        setWishlist(games);
-      } catch (error) {
-        console.error('Failed to load wishlist:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     const loadRandomGames = async () => {
       try {
-        const games = await gamesApi.getRandomGames(6);
+        setLoadingRandom(true);
+        const games = await gamesApi.getRandomGames(8);
         setRandomGames(games);
       } catch (error) {
         console.error('Failed to load random games:', error);
+        setRandomGames([]);
+      } finally {
+        setLoadingRandom(false);
       }
     };
 
-    loadWishlist();
     loadRandomGames();
   }, []);
 
   const removeFromWishlist = async (gameId) => {
     try {
-      await gamesApi.removeFromWishlist(gameId);
-      setWishlist(items => items.filter(item => item.id !== gameId));
+      await removeFromWishlistContext(gameId);
       showNotification('Removed from wishlist');
     } catch (error) {
       console.error('Failed to remove from wishlist:', error);
@@ -100,8 +99,14 @@ export default function WishlistPage() {
     }
   };
 
-  const addToCart = (game) => {
-    showNotification(`${game.title} added to cart`);
+  const addToCart = async (game) => {
+    try {
+      await addToCartContext(game.id || game.gameId, 1);
+      showNotification(`${game.title || game.game?.title} added to cart`);
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      showNotification('Failed to add to cart');
+    }
   };
 
   const showNotification = (message) => {
@@ -114,10 +119,13 @@ export default function WishlistPage() {
     navigate('/');
   };
 
-  const totalValue = wishlist.reduce((sum, item) => sum + (item.price || 0), 0);
-  const totalSavings = wishlist.reduce((sum, item) => {
-    if (item.originalPrice && item.originalPrice > item.price) {
-      return sum + (item.originalPrice - item.price);
+  // Extract games from wishlist items
+  const wishlistGames = wishlist?.items?.map(item => item.game) || [];
+  
+  const totalValue = wishlistGames.reduce((sum, game) => sum + (game?.price || 0), 0);
+  const totalSavings = wishlistGames.reduce((sum, game) => {
+    if (game?.originalPrice && game.originalPrice > game.price) {
+      return sum + (game.originalPrice - game.price);
     }
     return sum;
   }, 0);
@@ -127,7 +135,7 @@ export default function WishlistPage() {
       minHeight: '100vh',
       backgroundColor: theme.colors.background,
       color: theme.colors.text,
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      fontFamily: typography.fontFamily,
       display: 'flex',
       flexDirection: 'column',
     },
@@ -246,8 +254,9 @@ export default function WishlistPage() {
     },
     wishlistGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(4, 1fr)',
+      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
       gap: '20px',
+      width: '100%',
     },
     gameCard: {
       backgroundColor: theme.colors.surfaceLight,
@@ -258,7 +267,7 @@ export default function WishlistPage() {
     },
     gameImage: {
       width: '100%',
-      aspectRatio: '3/4',
+      height: '100%',
       objectFit: 'cover',
     },
     removeButton: {
@@ -416,7 +425,8 @@ export default function WishlistPage() {
     },
     randomGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(3, 1fr)',
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+      width: '100%',
       gap: '20px',
     },
     randomCard: {
@@ -474,7 +484,7 @@ export default function WishlistPage() {
     },
   };
 
-  if (loading) {
+  if (wishlistLoading) {
     return (
       <div style={styles.app}>
         <main style={styles.main}>
@@ -491,64 +501,48 @@ export default function WishlistPage() {
       <style>{responsiveCSS}</style>
       {notification && <div style={styles.notification}>{notification}</div>}
       
-      <main style={styles.main}>
-        <div style={styles.profileLayout} className="profile-layout">
-          {/* Sidebar */}
-          <aside style={styles.sidebar} className="profile-sidebar">
-            {/* User Stats Card */}
-            <div style={styles.userStatsCard} className="user-stats">
-              <h3 style={styles.userName}>{user?.nickname || 'Newbie Guy'}</h3>
-              <div style={styles.statsGrid}>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Games Purchased</span>
-                  <span style={styles.statValue}>{userStats.totalGames}</span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Total Saved</span>
-                  <span style={styles.statValuePrimary}>€{userStats.totalSaved.toFixed(2)}</span>
-                </div>
-                <div style={styles.statItem}>
-                  <span style={styles.statLabel}>Member for</span>
-                  <span style={styles.statValue}>{userStats.daysSinceRegistration} days</span>
-                </div>
-              </div>
-            </div>
+      <main className="min-h-screen bg-design-background text-design-text py-12">
+        <Container>
+          <div className="flex flex-col design-tablet:flex-row gap-12 design-mobile:gap-6">
+            {/* Sidebar */}
+            <ProfileSidebar
+              userName={user?.nickname || user?.username || 'Newbie Guy'}
+              userStats={userStats}
+              items={sidebarItems}
+              onLogout={handleLogout}
+              showUserStats={true}
+            />
 
-            {/* Navigation */}
-            <div className="sidebar-nav">
-              {sidebarItems.map((item) => (
-                <Link
-                  key={item.id}
-                  to={item.path}
-                  style={styles.sidebarItem(item.id === 'wishlist')}
-                  className="sidebar-item"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-            <button type="button" style={styles.logoutButton} onClick={handleLogout}>Log Out</button>
-          </aside>
-
-          {/* Wishlist Content */}
-          <div style={styles.content}>
-            {wishlist.length > 0 ? (
+            {/* Wishlist Content */}
+            <div className="flex-1 flex flex-col gap-6">
+            {wishlistGames.length > 0 ? (
               <>
-                <div style={styles.pageHeader}>
-                  <h1 style={styles.pageTitle}>Wishlist</h1>
+                <div className="flex items-center justify-between mb-6">
+                  <h1 className="text-3xl font-bold text-design-text">Wishlist</h1>
                   <button 
                     type="button"
-                    style={styles.addAllButton}
-                    onClick={() => {
-                      showNotification(`${wishlist.length} items added to cart`);
+                    className="px-6 py-3 bg-design-primary text-black font-semibold rounded-design-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+                    onClick={async () => {
+                      try {
+                        for (const game of wishlistGames) {
+                          if (game?.id) {
+                            await addToCartContext(game.id, 1);
+                          }
+                        }
+                        showNotification(`${wishlistGames.length} items added to cart`);
+                      } catch (error) {
+                        console.error('Failed to add all to cart:', error);
+                        showNotification('Failed to add some items to cart');
+                      }
                     }}
                   >
                     <Icons.Cart /> Add All to Cart
                   </button>
                 </div>
 
-                <div style={styles.wishlistGrid} className="wishlist-grid">
-                  {wishlist.map((game) => {
+                <div className="grid grid-cols-1 design-tablet:grid-cols-2 design-desktop:grid-cols-3 gap-6 wishlist-grid">
+                  {wishlistGames.map((game) => {
+                    if (!game) return null;
                     const discount = game.originalPrice && game.price < game.originalPrice
                       ? Math.round((1 - game.price / game.originalPrice) * 100)
                       : null;
@@ -556,11 +550,88 @@ export default function WishlistPage() {
                     return (
                       <div key={game.id} style={styles.gameCard}>
                         <Link to={`/game/${game.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                          <img 
-                            src={game.image || game.images?.[0]} 
-                            alt={game.title} 
-                            style={styles.gameImage} 
-                          />
+                          <div style={{ position: 'relative', width: '100%', aspectRatio: '3/4', overflow: 'hidden' }}>
+                            <img 
+                              src={game.image || game.images?.[0]} 
+                              alt={game.title} 
+                              style={styles.gameImage} 
+                            />
+                            
+                            {/* Dark gradient for bottom overlay */}
+                            <div
+                              style={{
+                                position: 'absolute',
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                height: '50%',
+                                background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, transparent 100%)',
+                                pointerEvents: 'none',
+                              }}
+                            />
+                            
+                            {/* Price overlay at bottom */}
+                            <div
+                              style={{
+                                position: 'absolute',
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                padding: '12px',
+                                zIndex: 10,
+                              }}
+                            >
+                              <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'baseline', 
+                                gap: '8px', 
+                                flexWrap: 'wrap' 
+                              }}>
+                                <span style={{ 
+                                  fontSize: '18px', 
+                                  fontWeight: '700', 
+                                  color: '#FFFFFF',
+                                  textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)',
+                                }}>
+                                  €{game.price?.toFixed(2) || '0.00'}
+                                </span>
+                                {game.originalPrice && game.originalPrice > game.price && (
+                                  <>
+                                    <span style={{ 
+                                      fontSize: '12px', 
+                                      color: 'rgba(255, 255, 255, 0.7)', 
+                                      textDecoration: 'line-through',
+                                      textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)',
+                                    }}>
+                                      €{game.originalPrice.toFixed(2)}
+                                    </span>
+                                    {discount && (
+                                      <span style={{ 
+                                        backgroundColor: theme.colors.primary, 
+                                        color: '#000', 
+                                        padding: '2px 6px', 
+                                        borderRadius: '4px', 
+                                        fontSize: '10px', 
+                                        fontWeight: '700',
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                                      }}>
+                                        -{discount}%
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Badges */}
+                            {game.isBestSeller && (
+                              <span style={styles.bestSellerBadge}>Best Seller</span>
+                            )}
+                            {discount && !game.isBestSeller && (
+                              <span style={styles.discountBadge}>-{discount}%</span>
+                            )}
+                          </div>
                         </Link>
                         <button
                           type="button"
@@ -578,23 +649,13 @@ export default function WishlistPage() {
                         >
                           <Icons.Heart />
                         </button>
-                        {game.isBestSeller && (
-                          <span style={styles.bestSellerBadge}>Best Seller</span>
-                        )}
-                        {discount && !game.isBestSeller && (
-                          <span style={styles.discountBadge}>-{discount}%</span>
-                        )}
                         <div style={styles.gameInfo}>
-                          <h3 style={styles.gameTitle}>{game.title}</h3>
+                          <Link to={`/game/${game.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                            <h3 style={styles.gameTitle}>{game.title}</h3>
+                          </Link>
                           <p style={styles.gameMeta}>
                             {game.platforms?.[0] || 'PC'} • {game.genres?.[0] || 'Game'}
                           </p>
-                          <div style={styles.priceRow}>
-                            <span style={styles.gamePrice}>€{game.price?.toFixed(2) || '0.00'}</span>
-                            {game.originalPrice && game.originalPrice > game.price && (
-                              <span style={styles.originalPrice}>€{game.originalPrice.toFixed(2)}</span>
-                            )}
-                          </div>
                           <button
                             type="button"
                             onClick={() => addToCart(game)}
@@ -611,14 +672,14 @@ export default function WishlistPage() {
                         </div>
                       </div>
                     );
-                  })}
+                  }).filter(Boolean)}
                 </div>
 
-                {/* Random Games Section */}
+                {/* Random Games Section - 8 random games */}
                 {randomGames.length > 0 && (
-                  <section style={styles.randomSection}>
-                    <h2 style={styles.randomTitle}>You might also like</h2>
-                    <div style={styles.randomGrid} className="random-games-grid">
+                  <section className="mt-12 pt-12 border-t border-design-border">
+                    <h2 className="text-2xl font-bold text-design-text mb-6">You might also like</h2>
+                    <div className="grid grid-cols-1 design-tablet:grid-cols-2 design-desktop:grid-cols-4 gap-6 random-games-grid">
                       {randomGames.map((game) => (
                         <Link
                           key={game.id}
@@ -649,25 +710,25 @@ export default function WishlistPage() {
               </>
             ) : (
               <>
-                <div style={styles.emptyState}>
-                  <div style={styles.emptyBackground}></div>
-                  <div style={styles.emptyContent}>
-                    <div style={styles.emptyIcon}>💚</div>
-                    <h2 style={styles.emptyTitle}>Your wishlist is empty</h2>
-                    <p style={styles.emptyText}>
-                      Add items using the <Icons.Heart /> button. We'll notify you when they go on sale!
-                    </p>
-                    <Link to="/catalog" style={styles.browseButton}>
-                      Go to Store
-                    </Link>
-                  </div>
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="text-6xl mb-4">💚</div>
+                  <h2 className="text-2xl font-bold text-design-text mb-2">Your wishlist is empty</h2>
+                  <p className="text-design-text-secondary mb-6">
+                    Add items using the <Icons.Heart /> button. We'll notify you when they go on sale!
+                  </p>
+                  <Link 
+                    to="/catalog" 
+                    className="px-6 py-3 bg-design-primary text-black font-semibold rounded-design-lg hover:opacity-90 transition-opacity"
+                  >
+                    Go to Catalog
+                  </Link>
                 </div>
 
-                {/* Random Games Section - also shown when wishlist is empty */}
+                {/* Random Games Section - also shown when wishlist is empty (8 random games) */}
                 {randomGames.length > 0 && (
-                  <section style={{ ...styles.randomSection, marginTop: '32px', borderTop: 'none' }}>
-                    <h2 style={styles.randomTitle}>You might also like</h2>
-                    <div style={styles.randomGrid} className="random-games-grid">
+                  <section className="mt-12 pt-12 border-t border-design-border">
+                    <h2 className="text-2xl font-bold text-design-text mb-6">You might also like</h2>
+                    <div className="grid grid-cols-1 design-tablet:grid-cols-2 design-desktop:grid-cols-4 gap-6 random-games-grid">
                       {randomGames.map((game) => (
                         <Link
                           key={game.id}
@@ -697,8 +758,9 @@ export default function WishlistPage() {
                 )}
               </>
             )}
+            </div>
           </div>
-        </div>
+        </Container>
       </main>
     </>
   );

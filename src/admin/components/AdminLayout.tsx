@@ -2,10 +2,11 @@ import React from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import AdminSidebar from './AdminSidebar';
+import { typography } from '../../styles/design-tokens';
 
 const theme = {
   colors: {
-    primary: '#00FF66',
+    primary: '#00C8C2',
     background: '#0D0D0D',
     surface: '#1A1A1A',
     surfaceLight: '#2A2A2A',
@@ -35,7 +36,7 @@ const AdminLayout: React.FC = () => {
       minHeight: '100vh',
       backgroundColor: theme.colors.background,
       color: theme.colors.text,
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      fontFamily: typography.fontFamily,
     }}>
       <AdminSidebar />
       <main style={{

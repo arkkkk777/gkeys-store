@@ -29,6 +29,8 @@ const TOKEN_KEY = 'gkeys_auth_token';
 const USER_KEY = 'gkeys_user';
 const TOKEN_EXPIRY_KEY = 'gkeys_token_expiry';
 
+
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -79,6 +81,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (expiryDate > now) {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
+          
+          // Verify token is still valid by checking current user
+          try {
+            const { authApi } = await import('../services/authApi');
+            await authApi.getCurrentUser();
+          } catch (error) {
+            // Token invalid, try to refresh
+            await refreshToken();
+          }
         } else {
           // Token expired, try to refresh
           await refreshToken();
@@ -92,31 +103,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  async function login(email: string, _password: string) {
+  async function login(email: string, password: string) {
     setIsLoading(true);
     try {
-      // Simulate API call
-      // In production, replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Use actual API call
+      const { authApi } = await import('../services/authApi');
+      const response = await authApi.login({ email, password });
 
-      // Mock successful login
-      const mockUser: User = {
-        id: '1',
-        email,
-        name: email.split('@')[0],
+      // Transform response to User format
+      const user: User = {
+        id: response.user.id,
+        email: response.user.email,
+        name: response.user.name,
+        avatar: response.user.avatar,
       };
 
-      const mockToken = 'mock_jwt_token_' + Date.now();
       const expiryTime = new Date();
-      expiryTime.setHours(expiryTime.getHours() + 24); // 24 hours from now
+      expiryTime.setSeconds(expiryTime.getSeconds() + response.expiresIn);
 
       // Store in state
-      setUser(mockUser);
-      setToken(mockToken);
+      setUser(user);
+      setToken(response.token);
 
       // Store in localStorage
-      localStorage.setItem(TOKEN_KEY, mockToken);
-      localStorage.setItem(USER_KEY, JSON.stringify(mockUser));
+      localStorage.setItem(TOKEN_KEY, response.token);
+      localStorage.setItem('gkeys_refresh_token', response.refreshToken);
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
       localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toISOString());
     } catch (error) {
       console.error('Login failed:', error);
@@ -126,31 +138,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  async function register(email: string, _password: string, name: string) {
+  async function register(email: string, password: string, name: string) {
     setIsLoading(true);
     try {
-      // Simulate API call
-      // In production, replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Use actual API call
+      const { authApi } = await import('../services/authApi');
+      const response = await authApi.register({ email, password, name });
 
-      // Mock successful registration
-      const mockUser: User = {
-        id: '1',
-        email,
-        name,
+      // Transform response to User format
+      const user: User = {
+        id: response.user.id,
+        email: response.user.email,
+        name: response.user.name,
+        avatar: response.user.avatar,
       };
 
-      const mockToken = 'mock_jwt_token_' + Date.now();
       const expiryTime = new Date();
-      expiryTime.setHours(expiryTime.getHours() + 24);
+      expiryTime.setSeconds(expiryTime.getSeconds() + response.expiresIn);
 
       // Store in state
-      setUser(mockUser);
-      setToken(mockToken);
+      setUser(user);
+      setToken(response.token);
 
       // Store in localStorage
-      localStorage.setItem(TOKEN_KEY, mockToken);
-      localStorage.setItem(USER_KEY, JSON.stringify(mockUser));
+      localStorage.setItem(TOKEN_KEY, response.token);
+      localStorage.setItem('gkeys_refresh_token', response.refreshToken);
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
       localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toISOString());
     } catch (error) {
       console.error('Registration failed:', error);
@@ -160,22 +173,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  function logout() {
-    clearAuth();
+  async function logout() {
+    try {
+      // Call logout API
+      const { authApi } = await import('../services/authApi');
+      await authApi.logout();
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+      // Continue with logout even if API call fails
+    } finally {
+      clearAuth();
+    }
   }
 
   async function refreshToken() {
     try {
-      // Simulate API call to refresh token
-      // In production, replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const storedRefreshToken = localStorage.getItem('gkeys_refresh_token');
+      if (!storedRefreshToken) {
+        throw new Error('No refresh token available');
+      }
 
-      const newToken = 'mock_jwt_token_refreshed_' + Date.now();
+      // Use actual API call
+      const { authApi } = await import('../services/authApi');
+      const response = await authApi.refreshToken(storedRefreshToken);
+
       const expiryTime = new Date();
-      expiryTime.setHours(expiryTime.getHours() + 24);
+      expiryTime.setSeconds(expiryTime.getSeconds() + response.expiresIn);
 
-      setToken(newToken);
-      localStorage.setItem(TOKEN_KEY, newToken);
+      setToken(response.token);
+      localStorage.setItem(TOKEN_KEY, response.token);
       localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toISOString());
     } catch (error) {
       console.error('Token refresh failed:', error);
@@ -189,6 +215,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
+    localStorage.removeItem('gkeys_refresh_token');
   }
 
   const value: AuthContextType = {

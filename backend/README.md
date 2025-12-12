@@ -43,6 +43,26 @@ npm run prisma:seed
 npm run prisma:studio
 ```
 
+### Использование Prisma типов
+
+После генерации Prisma Client, типы доступны для импорта:
+
+```typescript
+import { User, Game, Order, Transaction, Article } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+
+// Использование базовых типов
+const user: User = await prisma.user.findUnique({ where: { id } });
+
+// Использование типов с отношениями
+const userWithOrders: Prisma.UserGetPayload<{
+  include: { orders: true }
+}> = await prisma.user.findUnique({
+  where: { id },
+  include: { orders: true }
+});
+```
+
 ## Структура проекта
 
 ```

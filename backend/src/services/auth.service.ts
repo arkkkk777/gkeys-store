@@ -117,3 +117,47 @@ export const login = async (data: LoginRequest): Promise<AuthResponse> => {
   };
 };
 
+export const refreshToken = async (refreshTokenString: string): Promise<{ token: string; refreshToken: string; expiresIn: number }> => {
+  try {
+    // Verify refresh token
+    const { verifyRefreshToken, generateAccessToken, generateRefreshToken } = await import('../utils/jwt');
+    const decoded = verifyRefreshToken(refreshTokenString);
+
+    // Find user to ensure they still exist
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      const error: AppError = new Error('User not found');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    // Generate new tokens
+    const tokenPayload: TokenPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const newToken = generateAccessToken(tokenPayload);
+    const newRefreshToken = generateRefreshToken(tokenPayload);
+
+    return {
+      token: newToken,
+      refreshToken: newRefreshToken,
+      expiresIn: 7 * 24 * 60 * 60, // 7 days in seconds
+    };
+  } catch (error) {
+    const appError: AppError = error instanceof Error ? error as AppError : new Error('Invalid refresh token');
+    appError.statusCode = 401;
+    throw appError;
+  }
+};
+

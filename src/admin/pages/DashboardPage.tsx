@@ -10,6 +10,7 @@ import {
 } from 'react-icons/fi';
 import { adminApi } from '../services/adminApi';
 import type { DashboardStats } from '../services/adminApi';
+;
 
 const theme = {
   colors: {

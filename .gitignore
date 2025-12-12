@@ -24,8 +24,10 @@ build
 .env.development.local
 .env.test.local
 .env.production.local
+.env.bak*
 backend/.env
 backend/.env.local
+backend/.env.bak*
 
 # Database
 backend/prisma/dev.db
@@ -60,3 +62,16 @@ coverage
 *.pem
 .cache
 .env*.local
+
+# Backup files
+*.bak
+
+# Database dumps
+*.dump
+
+# Compiled TypeScript files in prisma
+backend/prisma/*.d.ts
+backend/prisma/*.d.ts.map
+backend/prisma/*.js
+backend/prisma/*.js.map
+!backend/prisma/seed.ts

@@ -813,6 +813,7 @@ export const generateFakeDataForUser = async (userId: string, webhookData: Recor
 };
 
 export const exportUserReport = async (userId: string): Promise<Buffer> => {
-  // TODO: Implement PDF generation
-  return Buffer.from('');
+  const userData = await getUserDetails(userId);
+  const { generateUserSummaryPDF } = await import('./pdf.service');
+  return await generateUserSummaryPDF(userData);
 };

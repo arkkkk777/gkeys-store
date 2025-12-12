@@ -405,6 +405,62 @@ async function main() {
     }
   }
 
+  // Seed FAQ data
+  console.log('📋 Seeding FAQ data...');
+  const faqData = [
+    // General Questions
+    { category: 'general', question: 'What is GKEYS?', answer: 'GKEYS is a licensed online store for video game activation keys. We sell official keys for Steam, Epic Games, Origin, Uplay, Battle.net, and other platforms. All our keys are purchased from official distributors and publishers.', order: 0 },
+    { category: 'general', question: 'Are the keys legal and official?', answer: 'Yes, all keys sold on GKEYS are 100% legal and official. We work directly with publishers and authorized distributors. Each key is verified before being added to our inventory.', order: 1 },
+    { category: 'general', question: 'What platforms do you support?', answer: 'We support all major gaming platforms including Steam, Epic Games Store, Origin (EA App), Uplay (Ubisoft Connect), Battle.net, GOG, Xbox, PlayStation, and Nintendo eShop.', order: 2 },
+    { category: 'general', question: 'Do you offer refunds?', answer: 'Due to the digital nature of our products, we cannot offer refunds once a key has been revealed. However, if you experience any issues with key activation, our support team will help resolve the problem.', order: 3 },
+    // Buying a Game
+    { category: 'buying', question: 'How do I purchase a game?', answer: 'Simply browse our catalog, add games to your cart, and proceed to checkout. You can pay using your account balance or credit/debit card. After payment, your keys will be delivered instantly to your account.', order: 0 },
+    { category: 'buying', question: 'What payment methods do you accept?', answer: 'We accept Visa, Mastercard, Apple Pay, Google Pay, and account balance top-ups via various payment methods. You can also use promo codes for additional discounts.', order: 1 },
+    { category: 'buying', question: 'How quickly will I receive my key?', answer: 'Keys are delivered instantly after successful payment. You can find your keys in your Profile under "My Orders". We also send an email confirmation with your activation keys.', order: 2 },
+    { category: 'buying', question: 'Can I gift a game to someone?', answer: 'Yes! During checkout, you can select the "Send as Gift" option. Enter the recipient\'s email address, and they will receive the key directly.', order: 3 },
+    // Pre-orders
+    { category: 'preorder', question: 'How do pre-orders work?', answer: 'When you pre-order a game, payment is processed immediately. You will receive your activation key on or shortly before the game\'s official release date. We send email notifications when your key is ready.', order: 0 },
+    { category: 'preorder', question: 'Can I cancel a pre-order?', answer: 'Pre-orders can be cancelled up to 14 days before the game\'s release date. After this period, cancellations are not possible. Contact our support team to request a cancellation.', order: 1 },
+    { category: 'preorder', question: 'Will I receive any bonuses with pre-orders?', answer: 'Many pre-orders include exclusive bonuses, DLC, or early access. Check the game\'s product page for specific pre-order bonuses. All bonuses are delivered with your main game key.', order: 2 },
+    // Key Activation
+    { category: 'activation', question: 'How do I activate my key on Steam?', answer: 'Open Steam → Click "Games" in the top menu → Select "Activate a Product on Steam" → Enter your key → Follow the prompts to complete activation. The game will then appear in your library.', order: 0 },
+    { category: 'activation', question: 'My key is not working. What should I do?', answer: 'First, ensure you\'re activating on the correct platform and region. If issues persist, contact our support with your order number. We\'ll verify the key and provide a replacement if necessary.', order: 1 },
+    { category: 'activation', question: 'Are keys region-locked?', answer: 'Some keys have regional restrictions. Each product page clearly indicates any region locks. Make sure to check the "Region" information before purchasing. Global keys work worldwide.', order: 2 },
+    { category: 'activation', question: 'Can I use a key multiple times?', answer: 'No, each key can only be activated once on a single account. Once activated, the key is permanently linked to that account and cannot be transferred or reused.', order: 3 },
+    // Account & Balance
+    { category: 'account', question: 'How do I top up my balance?', answer: 'Go to your Profile → Balance page → Enter the amount → Choose a payment method → Complete the payment. Your balance will be updated instantly and can be used for future purchases.', order: 0 },
+    { category: 'account', question: 'Is there a minimum top-up amount?', answer: 'The minimum top-up amount is $5. There is no maximum limit. Your balance never expires and can be used for any purchase on GKEYS.', order: 1 },
+    { category: 'account', question: 'Can I withdraw my balance?', answer: 'Account balance cannot be withdrawn as cash. However, you can use it for any purchase on GKEYS, including pre-orders and gift purchases.', order: 2 },
+    { category: 'account', question: 'How do I change my password?', answer: 'Go to your Profile → Edit Profile → Password section. Enter your current password, then your new password twice. Click "Save Changes" to update your password.', order: 3 },
+  ];
+
+  for (const faq of faqData) {
+    try {
+      await prisma.fAQ.upsert({
+        where: {
+          id: `${faq.category}-${faq.order}`,
+        },
+        update: {
+          question: faq.question,
+          answer: faq.answer,
+          order: faq.order,
+          active: true,
+        },
+        create: {
+          id: `${faq.category}-${faq.order}`,
+          category: faq.category,
+          question: faq.question,
+          answer: faq.answer,
+          order: faq.order,
+          active: true,
+        },
+      });
+    } catch (e) {
+      // FAQ might already exist, skip
+      console.log(`Skipping FAQ ${faq.category}-${faq.order}: ${e.message}`);
+    }
+  }
+
   console.log('✅ Seed completed');
   console.log(`   Admin: ${admin.email} / admin123`);
   console.log(`   User: ${user.email} / password123`);

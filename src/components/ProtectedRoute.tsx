@@ -36,7 +36,7 @@ export default function ProtectedRoute({ children, redirectTo = '/' }: Protected
               width: '48px',
               height: '48px',
               border: '3px solid #333333',
-              borderTopColor: '#00FF66',
+              borderTopColor: '#00C8C2',
               borderRadius: '50%',
               animation: 'spin 0.8s linear infinite',
             }}

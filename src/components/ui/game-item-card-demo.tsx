@@ -94,9 +94,9 @@ const gameItems = [
 ];
 
 export default function GameItemCardDemo() {
-  const handleAddItem = (gameTitle: string) => {
+  const handleAddItem = () => {
     // In a real app, you'd add this to a cart state
-    console.log(`Added ${gameTitle} to cart!`);
+    // Added to cart (console.log removed for production)
   };
 
   return (
@@ -114,7 +114,7 @@ export default function GameItemCardDemo() {
             platform={item.platform}
             genre={item.genre}
             releaseDate={item.releaseDate}
-            onAdd={() => handleAddItem(item.title)}
+          onAdd={handleAddItem}
           />
         ))}
       </div>

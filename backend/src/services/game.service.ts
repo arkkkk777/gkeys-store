@@ -900,3 +900,88 @@ export const getCollections = async (): Promise<Array<{ id: string; title: strin
   return collections.slice(0, 10);
 };
 
+/**
+ * Get autocomplete suggestions for search query
+ * @param query - Search query (minimum 2 characters)
+ * @param limit - Maximum number of results (default: 10)
+ * @returns Array of search suggestions with relevance scores
+ */
+export const getGameAutocomplete = async (
+  query: string,
+  limit: number = 10
+): Promise<Array<{
+  id: string;
+  title: string;
+  image: string;
+  slug: string;
+  relevanceScore: number;
+}>> => {
+  if (!query || query.length < 2) {
+    return [];
+  }
+
+  const searchTerm = query.toLowerCase().trim();
+
+  // Search games by title and description
+  const games = await prisma.game.findMany({
+    where: {
+      OR: [
+        { title: { contains: searchTerm, mode: 'insensitive' } },
+        { description: { contains: searchTerm, mode: 'insensitive' } },
+      ],
+      inStock: true,
+    },
+    take: limit * 2, // Get more to calculate relevance
+    include: {
+      platforms: {
+        include: {
+          platform: true,
+        },
+      },
+    },
+    orderBy: [
+      { userRating: 'desc' },
+      { releaseDate: 'desc' },
+    ],
+  });
+
+  // Calculate relevance scores
+  const suggestions = games.map((game) => {
+    const titleLower = game.title.toLowerCase();
+    const descriptionLower = game.description.toLowerCase();
+    
+    let relevanceScore = 0;
+
+    // Exact title match gets highest score
+    if (titleLower === searchTerm) {
+      relevanceScore = 1.0;
+    } else if (titleLower.startsWith(searchTerm)) {
+      relevanceScore = 0.9;
+    } else if (titleLower.includes(searchTerm)) {
+      relevanceScore = 0.7;
+    } else if (descriptionLower.includes(searchTerm)) {
+      relevanceScore = 0.5;
+    }
+
+    // Boost score for best sellers and new games
+    if (game.isBestSeller) relevanceScore += 0.1;
+    if (game.isNew) relevanceScore += 0.05;
+
+    // Normalize to 0-1 range
+    relevanceScore = Math.min(1.0, relevanceScore);
+
+    return {
+      id: game.id,
+      title: game.title,
+      image: game.image,
+      slug: game.slug,
+      relevanceScore,
+    };
+  });
+
+  // Sort by relevance and take top results
+  return suggestions
+    .sort((a, b) => b.relevanceScore - a.relevanceScore)
+    .slice(0, limit);
+};
+

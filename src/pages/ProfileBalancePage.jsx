@@ -1,12 +1,12 @@
-// Profile Balance Page - GKEYS Gaming Store
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Icons } from '../components/UIKit';
-import { useAuth } from '../context/AuthContext';
+import { motion } from 'framer-motion';
+import ProfileLayout from '../components/profile/ProfileLayout';
+import { paymentApi } from '../services/paymentApi';
+import apiClient from '../services/api';
 
 const theme = {
   colors: {
-    primary: '#00FF66',
+    primary: '#00C8C2',
     background: '#0D0D0D',
     surface: '#1A1A1A',
     surfaceLight: '#2A2A2A',
@@ -14,495 +14,358 @@ const theme = {
     textSecondary: '#999999',
     textMuted: '#666666',
     border: '#333333',
-    error: '#FF4444',
   },
-  spacing: { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px', xxl: '48px' },
-  borderRadius: { sm: '4px', md: '8px', lg: '12px', xl: '16px', full: '9999px' },
-};
-
-const sidebarItems = [
-  { id: 'orders', label: 'Orders', path: '/profile/orders' },
-  { id: 'wishlist', label: 'Wishlist', path: '/wishlist' },
-  { id: 'balance', label: 'Balance', path: '/profile/balance' },
-  { id: 'edit-profile', label: 'Edit Profile', path: '/profile/edit' },
-];
-
-// Mock user stats
-const userStats = {
-  totalGames: 24,
-  totalSaved: 156.50,
-  daysSinceRegistration: 127,
 };
 
 const paymentMethods = [
-  { id: 'trustly', label: 'Trustly' },
-  { id: 'card', label: 'Visa, Mastercard' },
-  { id: 'klarna', label: 'Klarna' },
-  { id: 'apple', label: 'Apple Pay' },
+  { id: 'trustly', label: 'Trustly', icon: null },
+  { id: 'card', label: 'Visa, Mastercard', icon: null },
+  { id: 'klarna', label: 'Klarna', icon: null },
+  { id: 'apple', label: 'Apple Pay', icon: null },
 ];
 
-const responsiveCSS = `
-  @media (max-width: 768px) {
-    .desktop-nav { display: none !important; }
-    .desktop-search { display: none !important; }
-    .desktop-login { display: none !important; }
-    .profile-layout { flex-direction: column !important; }
-    .profile-sidebar { width: 100% !important; flex-direction: column !important; gap: 8px !important; padding-bottom: 16px !important; }
-    .sidebar-nav { display: flex !important; flex-direction: row !important; overflow-x: auto !important; gap: 8px !important; }
-    .sidebar-item { white-space: nowrap !important; padding: 10px 16px !important; }
-    .user-stats { display: none !important; }
-    .balance-content { flex-direction: column !important; }
-    .user-info { margin-bottom: 24px !important; }
-  }
-`;
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  },
+};
+
+// Credit Card Icon
+const CreditCardIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <title>Credit Card</title>
+    <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+    <line x1="1" y1="10" x2="23" y2="10" />
+  </svg>
+);
 
 export default function ProfileBalancePage() {
-  const [activeTab, setActiveTab] = useState('balance');
-  const [selectedPayment, setSelectedPayment] = useState('trustly');
   const [promoCode, setPromoCode] = useState('');
   const [amount, setAmount] = useState('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('trustly');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentBalance, setCurrentBalance] = useState(null);
+  const [loadingBalance, setLoadingBalance] = useState(true);
+  const [error, setError] = useState(null);
 
-  const styles = {
-    app: {
-      minHeight: '100vh',
-      backgroundColor: theme.colors.background,
-      color: theme.colors.text,
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-      display: 'flex',
-      flexDirection: 'column',
-    },
-    header: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '16px 24px',
-      backgroundColor: theme.colors.background,
-      borderBottom: `1px solid ${theme.colors.border}`,
-      position: 'sticky',
-      top: 0,
-      zIndex: 1000,
-    },
-    logo: {
-      display: 'flex',
-      alignItems: 'center',
-      fontSize: '24px',
-      fontWeight: '700',
-      textDecoration: 'none',
-      color: theme.colors.text,
-    },
-    nav: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '32px',
-    },
-    navLink: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      color: theme.colors.text,
-      textDecoration: 'none',
-      fontSize: '16px',
-    },
-    rightSection: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
-    },
-    iconButton: {
-      width: '44px',
-      height: '44px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: '50%',
-      backgroundColor: theme.colors.surface,
-      color: theme.colors.text,
-      border: 'none',
-      cursor: 'pointer',
-    },
-    searchButton: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '10px 20px',
-      backgroundColor: theme.colors.surface,
-      borderRadius: '50px',
-      color: theme.colors.textSecondary,
-      border: 'none',
-      cursor: 'pointer',
-      minWidth: '150px',
-    },
-    loginButton: {
-      padding: '10px 24px',
-      backgroundColor: 'transparent',
-      border: `1px solid ${theme.colors.border}`,
-      borderRadius: '8px',
-      color: theme.colors.text,
-      fontSize: '14px',
-      fontWeight: '600',
-      cursor: 'pointer',
-    },
-    main: {
-      flex: 1,
-      padding: '48px 24px',
-      maxWidth: '1280px',
-      margin: '0 auto',
-      width: '100%',
-    },
-    profileLayout: {
-      display: 'flex',
-      gap: '48px',
-    },
-    sidebar: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px',
-      minWidth: '220px',
-    },
-    sidebarItem: (isActive) => ({
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '16px 24px',
-      backgroundColor: isActive ? theme.colors.surface : 'transparent',
-      borderRadius: '8px',
-      color: isActive ? theme.colors.text : theme.colors.textSecondary,
-      fontSize: '16px',
-      border: 'none',
-      cursor: 'pointer',
-      textAlign: 'left',
-      transition: 'all 0.2s ease',
-      textDecoration: 'none',
-    }),
-    sidebarBadge: {
-      backgroundColor: theme.colors.primary,
-      color: '#000',
-      padding: '2px 8px',
-      borderRadius: '50px',
-      fontSize: '12px',
-      fontWeight: '600',
-    },
-    logoutButton: {
-      padding: '16px 24px',
-      backgroundColor: 'transparent',
-      border: 'none',
-      color: theme.colors.error,
-      fontSize: '16px',
-      textAlign: 'left',
-      cursor: 'pointer',
-      marginTop: '16px',
-    },
-    userStatsCard: {
-      backgroundColor: theme.colors.surface,
-      borderRadius: '12px',
-      padding: '20px',
-      marginBottom: '24px',
-    },
-    userName: {
-      fontSize: '18px',
-      fontWeight: '600',
-      marginBottom: '16px',
-    },
-    statsGrid: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px',
-    },
-    statItem: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    statLabel: {
-      fontSize: '13px',
-      color: theme.colors.textSecondary,
-    },
-    statValue: {
-      fontSize: '14px',
-      fontWeight: '600',
-    },
-    statValuePrimary: {
-      fontSize: '14px',
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    content: {
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '24px',
-    },
-    userInfo: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: '16px',
-    },
-    avatar: {
-      width: '100px',
-      height: '100px',
-      borderRadius: '50%',
-      backgroundColor: '#1a1a2e',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '40px',
-      border: `3px solid ${theme.colors.primary}`,
-      boxShadow: `0 0 20px rgba(0, 255, 102, 0.3)`,
-    },
-    userName: {
-      fontSize: '24px',
-      fontWeight: '600',
-    },
-    balanceCard: {
-      backgroundColor: theme.colors.surfaceLight,
-      borderRadius: '16px',
-      padding: '24px',
-      maxWidth: '400px',
-    },
-    balanceTitle: {
-      fontSize: '20px',
-      fontWeight: '600',
-      marginBottom: '16px',
-    },
-    balanceRow: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '24px',
-    },
-    balanceLabel: {
-      color: theme.colors.textSecondary,
-      fontSize: '14px',
-    },
-    balanceAmount: {
-      fontSize: '18px',
-      fontWeight: '600',
-    },
-    sectionTitle: {
-      fontSize: '16px',
-      fontWeight: '600',
-      marginBottom: '12px',
-    },
-    inputGroup: {
-      display: 'flex',
-      gap: '8px',
-      marginBottom: '24px',
-    },
-    input: {
-      flex: 1,
-      padding: '12px 16px',
-      backgroundColor: theme.colors.surface,
-      border: `1px solid ${theme.colors.border}`,
-      borderRadius: '8px',
-      color: theme.colors.text,
-      fontSize: '14px',
-      outline: 'none',
-    },
-    useButton: {
-      padding: '12px 24px',
-      backgroundColor: theme.colors.surfaceLight,
-      border: 'none',
-      borderRadius: '8px',
-      color: theme.colors.textSecondary,
-      fontSize: '14px',
-      cursor: 'pointer',
-    },
-    paymentMethods: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px',
-      marginBottom: '24px',
-    },
-    paymentOption: (isSelected) => ({
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '12px',
-      backgroundColor: 'transparent',
-      border: 'none',
-      cursor: 'pointer',
-      color: theme.colors.text,
-      fontSize: '14px',
-    }),
-    radio: (isSelected) => ({
-      width: '20px',
-      height: '20px',
-      borderRadius: '50%',
-      border: `2px solid ${isSelected ? theme.colors.primary : theme.colors.border}`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }),
-    radioDot: {
-      width: '10px',
-      height: '10px',
-      borderRadius: '50%',
-      backgroundColor: theme.colors.primary,
-    },
-    proceedButton: {
-      width: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      padding: '14px 24px',
-      backgroundColor: theme.colors.primary,
-      color: '#000',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'pointer',
-    },
-    footer: {
-      backgroundColor: theme.colors.background,
-      borderTop: `1px solid ${theme.colors.border}`,
-      padding: '48px 24px',
-      marginTop: 'auto',
-    },
-    footerTop: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: '24px',
-      marginBottom: '32px',
-      maxWidth: '1280px',
-      margin: '0 auto 32px',
-    },
-    footerNav: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '24px',
-    },
-    footerLink: {
-      color: theme.colors.textSecondary,
-      textDecoration: 'none',
-      fontSize: '14px',
-    },
-    footerSocial: {
-      display: 'flex',
-      gap: '16px',
-    },
-    footerBottom: {
-      textAlign: 'center',
-      paddingTop: '32px',
-      borderTop: `1px solid ${theme.colors.border}`,
-      maxWidth: '1280px',
-      margin: '0 auto',
-    },
-    copyright: {
-      color: theme.colors.textMuted,
-      fontSize: '12px',
-      lineHeight: '1.8',
-    },
+  // Load current balance
+  useEffect(() => {
+    const loadBalance = async () => {
+      try {
+        setLoadingBalance(true);
+        const response = await apiClient.get('/api/users/balance');
+        setCurrentBalance(response.data.balance);
+      } catch (err) {
+        console.error('Failed to load balance:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load balance');
+      } finally {
+        setLoadingBalance(false);
+      }
+    };
+    loadBalance();
+  }, []);
+
+  const handlePromoSubmit = async () => {
+    if (!promoCode.trim()) return;
+    // Handle promo code submission
+    console.log('Applying promo code:', promoCode);
+  };
+
+  const handlePayment = async () => {
+    if (!amount || parseFloat(amount) <= 0) return;
+    
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      const intent = await paymentApi.createBalanceTopUp({
+        amount: parseFloat(amount),
+        currency: 'EUR',
+        paymentMethod: selectedPaymentMethod,
+        promoCode: promoCode.trim() || undefined,
+      });
+      
+      // Redirect to payment gateway
+      if (intent.redirectUrl) {
+        window.location.href = intent.redirectUrl;
+      } else {
+        setError('Payment gateway URL not available');
+        setIsSubmitting(false);
+      }
+    } catch (err) {
+      console.error('Failed to create payment intent:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create payment');
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <>
-      <style>{responsiveCSS}</style>
-      {/* Main Content */}
-        <main style={styles.main}>
-          <div style={styles.profileLayout} className="profile-layout">
-            {/* Sidebar */}
-            <aside style={styles.sidebar} className="profile-sidebar">
-              {/* User Stats Card */}
-              <div style={styles.userStatsCard} className="user-stats">
-                <h3 style={styles.userName}>Newbie Guy</h3>
-                <div style={styles.statsGrid}>
-                  <div style={styles.statItem}>
-                    <span style={styles.statLabel}>Games Purchased</span>
-                    <span style={styles.statValue}>{userStats.totalGames}</span>
-                  </div>
-                  <div style={styles.statItem}>
-                    <span style={styles.statLabel}>Total Saved</span>
-                    <span style={styles.statValuePrimary}>€{userStats.totalSaved.toFixed(2)}</span>
-                  </div>
-                  <div style={styles.statItem}>
-                    <span style={styles.statLabel}>Member for</span>
-                    <span style={styles.statValue}>{userStats.daysSinceRegistration} days</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Navigation */}
-              <div className="sidebar-nav">
-                {sidebarItems.map((item) => (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    style={styles.sidebarItem(activeTab === item.id)}
-                    className="sidebar-item"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-              <button style={styles.logoutButton}>Log Out</button>
-            </aside>
-
-            {/* Balance Content */}
-            <div style={styles.content} className="balance-content">
-              {/* User Info */}
-              <div style={styles.userInfo} className="user-info">
-                <div style={styles.avatar}>🎮</div>
-                <span style={styles.userName}>Newbie Guy</span>
-              </div>
-
-              {/* Balance Card */}
-              <div style={styles.balanceCard}>
-                <h3 style={styles.balanceTitle}>Your Balance Info</h3>
-                <div style={styles.balanceRow}>
-                  <span style={styles.balanceLabel}>Current balance</span>
-                  <span style={styles.balanceAmount}>56€</span>
-                </div>
-
-                <h4 style={styles.sectionTitle}>Do you have a promo code?</h4>
-                <div style={styles.inputGroup}>
-                  <input
-                    type="text"
-                    placeholder="Your promo code"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
-                    style={styles.input}
-                  />
-                  <button style={styles.useButton}>Use</button>
-                </div>
-
-                <h4 style={styles.sectionTitle}>Top up your balance</h4>
-                <input
-                  type="text"
-                  placeholder="Enter amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  style={{ ...styles.input, width: '100%', marginBottom: '16px' }}
-                />
-
-                <div style={styles.paymentMethods}>
-                  {paymentMethods.map((method) => (
-                    <button
-                      key={method.id}
-                      style={styles.paymentOption(selectedPayment === method.id)}
-                      onClick={() => setSelectedPayment(method.id)}
-                    >
-                      <div style={styles.radio(selectedPayment === method.id)}>
-                        {selectedPayment === method.id && <div style={styles.radioDot} />}
-                      </div>
-                      {method.label}
-                    </button>
-                  ))}
-                </div>
-
-                <button style={styles.proceedButton}>
-                  <Icons.CreditCard />
-                  Proceed to pay
-                </button>
-              </div>
+    <ProfileLayout>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        style={{
+          maxWidth: '500px',
+          margin: '0 auto',
+        }}
+      >
+        {/* Balance Card */}
+        <motion.div
+          variants={itemVariants}
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: '16px',
+            padding: '24px',
+            border: `1px solid ${theme.colors.border}`,
+          }}
+        >
+          {/* Balance Info Section */}
+          <div style={{ marginBottom: '24px' }}>
+            <h2
+              style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: theme.colors.text,
+                margin: '0 0 16px 0',
+              }}
+            >
+              Your Balance Info
+            </h2>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: `1px solid ${theme.colors.border}`,
+              }}
+            >
+              <span style={{ color: theme.colors.textSecondary, fontSize: '14px' }}>
+                Current balance
+              </span>
+              <span
+                style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: theme.colors.text,
+                }}
+              >
+                {loadingBalance ? 'Loading...' : currentBalance !== null ? `${currentBalance.toFixed(2)}€` : 'N/A'}
+              </span>
             </div>
           </div>
-        </main>
-    </>
+
+          {/* Promo Code Section */}
+          <div style={{ marginBottom: '32px' }}>
+            <h3
+              style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                color: theme.colors.text,
+                margin: '0 0 12px 0',
+              }}
+            >
+              Do you have a promo code?
+            </h3>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value)}
+                placeholder="Your promo code"
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  backgroundColor: theme.colors.surfaceLight,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: '8px',
+                  color: theme.colors.text,
+                  fontSize: '14px',
+                  outline: 'none',
+                }}
+              />
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handlePromoSubmit}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: theme.colors.surfaceLight,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: '8px',
+                  color: theme.colors.textSecondary,
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                }}
+              >
+                Use
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Top Up Section */}
+          <div>
+            <h3
+              style={{
+                fontSize: '16px',
+                fontWeight: '500',
+                color: theme.colors.text,
+                margin: '0 0 12px 0',
+              }}
+            >
+              Top up your balance
+            </h3>
+            {/* Amount Input */}
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount"
+              min="1"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: theme.colors.surfaceLight,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: '8px',
+                color: theme.colors.text,
+                fontSize: '14px',
+                outline: 'none',
+                marginBottom: '16px',
+                boxSizing: 'border-box',
+              }}
+            />
+            {/* Payment Methods */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                marginBottom: '24px',
+              }}
+            >
+              {paymentMethods.map((method) => (
+                <label
+                  key={method.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '8px 0',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      border: `2px solid ${
+                        selectedPaymentMethod === method.id
+                          ? theme.colors.primary
+                          : theme.colors.border
+                      }`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {selectedPaymentMethod === method.id && (
+                      <div
+                        style={{
+                          width: '10px',
+                          height: '10px',
+                          borderRadius: '50%',
+                          backgroundColor: theme.colors.primary,
+                        }}
+                      />
+                    )}
+                  </div>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value={method.id}
+                    checked={selectedPaymentMethod === method.id}
+                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                    style={{ display: 'none' }}
+                  />
+                  <span
+                    style={{
+                      fontSize: '14px',
+                      color: theme.colors.text,
+                    }}
+                  >
+                    {method.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {/* Error Message */}
+            {error && (
+              <div
+                style={{
+                  padding: '12px',
+                  backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                  border: `1px solid #FF4444`,
+                  borderRadius: '8px',
+                  color: '#FF4444',
+                  fontSize: '14px',
+                  marginBottom: '16px',
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            {/* Proceed to Pay Button */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handlePayment}
+              disabled={isSubmitting || !amount || parseFloat(amount) <= 0}
+              type="button"
+              style={{
+                width: '100%',
+                padding: '14px 24px',
+                backgroundColor: theme.colors.primary,
+                border: 'none',
+                borderRadius: '8px',
+                color: '#000',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: isSubmitting || !amount || parseFloat(amount) <= 0 ? 'not-allowed' : 'pointer',
+                opacity: isSubmitting || !amount || parseFloat(amount) <= 0 ? 0.6 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              <CreditCardIcon />
+              {isSubmitting ? 'Processing...' : 'Proceed to pay'}
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </ProfileLayout>
   );
 }
-

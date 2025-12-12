@@ -6,7 +6,7 @@ import { blogApi } from '../services/blogApi';
 
 const theme = {
   colors: {
-    primary: '#00FF66',
+    primary: '#00C8C2',
     background: '#0D0D0D',
     surface: '#1A1A1A',
     surfaceLight: '#2A2A2A',
@@ -20,11 +20,46 @@ const theme = {
 };
 
 const Icons = {
-  ArrowLeft: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
-  Clock: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  Calendar: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-  User: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-  Share: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>,
+  ArrowLeft: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <title>Arrow Left</title>
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </svg>
+  ),
+  Clock: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <title>Clock</title>
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  ),
+  Calendar: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <title>Calendar</title>
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  ),
+  User: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <title>User</title>
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+  ),
+  Share: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <title>Share</title>
+      <circle cx="18" cy="5" r="3"/>
+      <circle cx="6" cy="12" r="3"/>
+      <circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+    </svg>
+  ),
 };
 
 const categoryColors = {
@@ -348,7 +383,7 @@ export default function ArticlePage() {
         >
           <Link to="/blog" style={styles.backButton}>
             <Icons.ArrowLeft />
-            Back to Blog
+            Back to feed
           </Link>
 
           <header style={styles.header}>
@@ -368,7 +403,7 @@ export default function ArticlePage() {
                 <Icons.Clock />
                 {article.readTime} min read
               </span>
-              <button style={styles.shareButton} onClick={handleShare}>
+              <button type="button" style={styles.shareButton} onClick={handleShare}>
                 <Icons.Share />
                 Share
               </button>
@@ -377,11 +412,13 @@ export default function ArticlePage() {
             <p style={styles.excerpt}>{article.excerpt}</p>
           </header>
 
-          <img
-            src={article.image}
-            alt={article.title}
-            style={styles.heroImage}
-          />
+          {(article.image || article.coverImage) && (
+            <img
+              src={article.image || article.coverImage}
+              alt={article.title}
+              style={styles.heroImage}
+            />
+          )}
 
           <div
             style={styles.content}
@@ -407,11 +444,13 @@ export default function ArticlePage() {
                     to={`/blog/${post.slug}`}
                     style={styles.relatedCard}
                   >
-                    <img
-                      src={post.image}
-                      alt={post.title}
-                      style={styles.relatedImage}
-                    />
+                    {(post.image || post.coverImage) && (
+                      <img
+                        src={post.image || post.coverImage}
+                        alt={post.title}
+                        style={styles.relatedImage}
+                      />
+                    )}
                     <div style={styles.relatedContent}>
                       <h3 style={styles.relatedCardTitle}>{post.title}</h3>
                       <span style={styles.relatedMeta}>

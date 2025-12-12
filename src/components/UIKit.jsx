@@ -1,47 +1,21 @@
 // UI-Kit: Core Components for GKEYS
 import React, { useState, createContext, useContext } from 'react';
+// Import centralized design tokens
+import { colors, spacing, borderRadius, breakpoints, typography } from '../styles/design-tokens';
+import catalogIcon from '../assets/catalog.svg';
+import mediaIcon from '../assets/media.svg';
+import wishlistIcon from '../assets/wishlist.svg';
+import cartIcon from '../assets/cart.svg';
 
 // ============ THEME & CONTEXT ============
 const ThemeContext = createContext();
 
+// Use centralized design tokens - single source of truth
 export const theme = {
-  colors: {
-    primary: '#00FF66',
-    primaryDark: '#00CC52',
-    background: '#0D0D0D',
-    surface: '#1A1A1A',
-    surfaceLight: '#2A2A2A',
-    surfaceHover: '#333333',
-    text: '#FFFFFF',
-    textSecondary: '#999999',
-    textMuted: '#666666',
-    border: '#333333',
-    error: '#FF4444',
-    warning: '#FFAA00',
-    success: '#00FF66',
-    discount: '#FF4444',
-  },
-  spacing: {
-    xs: '4px',
-    sm: '8px',
-    md: '16px',
-    lg: '24px',
-    xl: '32px',
-    xxl: '48px',
-  },
-  borderRadius: {
-    sm: '4px',
-    md: '8px',
-    lg: '12px',
-    xl: '16px',
-    full: '9999px',
-  },
-  breakpoints: {
-    mobile: '480px',
-    tablet: '768px',
-    desktop: '1024px',
-    wide: '1280px',
-  },
+  colors,
+  spacing,
+  borderRadius,
+  breakpoints,
 };
 
 // ============ STYLES ============
@@ -53,7 +27,7 @@ const styles = `
   }
 
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: ${typography.fontFamily};
     background-color: ${theme.colors.background};
     color: ${theme.colors.text};
     line-height: 1.5;
@@ -256,7 +230,7 @@ export const Card = ({
     transition: 'all 0.2s ease',
     cursor: onClick ? 'pointer' : 'default',
     transform: hover && isHovered ? 'translateY(-4px)' : 'none',
-    boxShadow: hover && isHovered ? '0 8px 24px rgba(0, 255, 102, 0.1)' : 'none',
+    boxShadow: hover && isHovered ? '0 8px 24px rgba(0, 200, 194, 0.1)' : 'none',
     ...style,
   };
 
@@ -429,24 +403,23 @@ export const Icons = {
     </svg>
   ),
   Heart: ({ filled = false }) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-    </svg>
+    <img 
+      src={wishlistIcon} 
+      alt="Wishlist" 
+      width="20" 
+      height="20" 
+      style={{ 
+        display: 'block',
+        opacity: filled ? 1 : 0.6,
+        filter: filled ? 'none' : 'brightness(0.8)'
+      }} 
+    />
   ),
   Cart: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="9" cy="21" r="1"/>
-      <circle cx="20" cy="21" r="1"/>
-      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-    </svg>
+    <img src={cartIcon} alt="Cart" width="20" height="20" style={{ display: 'block' }} />
   ),
   Grid: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="7" height="7"/>
-      <rect x="14" y="3" width="7" height="7"/>
-      <rect x="14" y="14" width="7" height="7"/>
-      <rect x="3" y="14" width="7" height="7"/>
-    </svg>
+    <img src={catalogIcon} alt="Catalog" width="20" height="20" style={{ display: 'block' }} />
   ),
   Menu: () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -547,11 +520,7 @@ export const Icons = {
     </svg>
   ),
   Media: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-      <line x1="8" y1="21" x2="16" y2="21"/>
-      <line x1="12" y1="17" x2="12" y2="21"/>
-    </svg>
+    <img src={mediaIcon} alt="Media" width="20" height="20" style={{ display: 'block' }} />
   ),
 };
 

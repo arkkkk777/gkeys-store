@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider  = "postgres"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
@@ -88,6 +88,10 @@ model Game {
   isBestSeller      Boolean  @default(false)
   isNew             Boolean  @default(false)
   isPreorder        Boolean  @default(false)
+  // Extended fields for advanced filters
+  ratingCritic      Int?     @db.SmallInt  // 0-100, optional
+  ratingUser        Int?     @db.SmallInt  // 0-100, optional
+  languages         String[]                // Array of language codes (ISO 639-1)
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -103,8 +107,15 @@ model Game {
 
   @@index([slug])
   @@index([inStock])
+  @@index([isPreorder])
   @@index([releaseDate])
+  @@index([isBestSeller])
+  @@index([isNew])
+  @@index([price])
   @@index([g2aProductId])
+  @@index([ratingCritic])
+  @@index([ratingUser])
+  @@index([languages])
   @@map("games")
 }
 
@@ -357,5 +368,30 @@ model PromoCode {
 
   @@index([code])
   @@map("promo_codes")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  sessionId String   @unique
+  data      Json     // Stores cart/wishlist data
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model FAQ {
+  id        String   @id @default(uuid())
+  category  String
+  question  String
+  answer    String   @db.Text
+  order     Int      @default(0) // Display order
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([category, order])
+  @@map("faqs")
 }
 

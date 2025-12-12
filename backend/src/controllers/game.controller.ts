@@ -15,6 +15,7 @@ import {
   getAllPlatforms,
   getFilterOptions,
   getCollections,
+  getGameAutocomplete,
 } from '../services/game.service';
 import { GameFilters } from '../types/game';
 
@@ -340,6 +341,42 @@ export const getCollectionsController = async (
     res.status(200).json({
       success: true,
       data: collections,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getGameAutocompleteController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const query = req.query.q as string;
+    const limit = req.query.limit ? Number(req.query.limit) : 10;
+
+    // Validate query
+    if (!query || query.length < 2) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Query must be at least 2 characters long' },
+      });
+    }
+
+    // Validate limit
+    if (limit < 1 || limit > 20) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Limit must be between 1 and 20' },
+      });
+    }
+
+    const suggestions = await getGameAutocomplete(query, limit);
+
+    res.status(200).json({
+      success: true,
+      data: suggestions,
     });
   } catch (error) {
     next(error);

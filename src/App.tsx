@@ -1,14 +1,21 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
+import { WishlistProvider } from './context/WishlistContext';
 import Layout from './components/Layout';
 import PageTransition from './components/PageTransition';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminApp from './admin/AdminApp';
+
 // @ts-ignore
 import HomePage from './pages/HomePage';
 // @ts-ignore
+import ProfilePage from './pages/ProfilePage';
+// @ts-ignore
 import ProfileOrdersPage from './pages/ProfileOrdersPage';
+// @ts-ignore
+import ProfileWishlistPage from './pages/ProfileWishlistPage';
 // @ts-ignore
 import ProfileBalancePage from './pages/ProfileBalancePage';
 // @ts-ignore
@@ -17,6 +24,8 @@ import GameDetailPage from './pages/GameDetailPage';
 import CatalogPage from './pages/CatalogPage';
 // @ts-ignore
 import CartPage from './pages/CartPage';
+// @ts-ignore
+import CheckoutPage from './pages/CheckoutPage';
 // @ts-ignore
 import WishlistPage from './pages/WishlistPage';
 // @ts-ignore
@@ -39,6 +48,9 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 // @ts-ignore
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+// @ts-ignore
+import ComponentShowcase from './pages/ComponentShowcase';
+
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -79,6 +91,16 @@ function AnimatedRoutes() {
           }
         />
         <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute>
+              <PageTransition>
+                <CheckoutPage />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/wishlist"
           element={
             <PageTransition>
@@ -95,11 +117,31 @@ function AnimatedRoutes() {
           }
         />
         <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <PageTransition>
+                <ProfilePage />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/profile/orders"
           element={
             <ProtectedRoute>
               <PageTransition>
                 <ProfileOrdersPage />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/wishlist"
+          element={
+            <ProtectedRoute>
+              <PageTransition>
+                <ProfileWishlistPage />
               </PageTransition>
             </ProtectedRoute>
           }
@@ -188,6 +230,14 @@ function AnimatedRoutes() {
             </PageTransition>
           }
         />
+        <Route
+          path="/component-showcase"
+          element={
+            <PageTransition>
+              <ComponentShowcase />
+            </PageTransition>
+          }
+        />
       </Routes>
     </AnimatePresence>
   );
@@ -197,6 +247,7 @@ function AppRoutes() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isAuthRoute = ['/login', '/register', '/forgot-password'].includes(location.pathname);
+  const isShowcaseRoute = location.pathname === '/component-showcase';
 
   if (isAdminRoute) {
     return (
@@ -206,14 +257,15 @@ function AppRoutes() {
     );
   }
 
-  // Auth pages don't need the main layout
-  if (isAuthRoute) {
+  // Auth pages and showcase don't need the main layout
+  if (isAuthRoute || isShowcaseRoute) {
     return (
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route path="/login" element={<PageTransition><LoginPage /></PageTransition>} />
           <Route path="/register" element={<PageTransition><RegisterPage /></PageTransition>} />
           <Route path="/forgot-password" element={<PageTransition><ForgotPasswordPage /></PageTransition>} />
+          <Route path="/component-showcase" element={<PageTransition><ComponentShowcase /></PageTransition>} />
         </Routes>
       </AnimatePresence>
     );
@@ -229,9 +281,13 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <CartProvider>
+        <WishlistProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </WishlistProvider>
+      </CartProvider>
     </AuthProvider>
   );
 }

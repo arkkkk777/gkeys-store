@@ -3,6 +3,7 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { colors } from "@/styles/design-tokens";
 
 interface GlitchTextProps extends Omit<React.HTMLAttributes<HTMLHeadingElement>, 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration' | 'onDragStart' | 'onDrag' | 'onDragEnd'> {
   children: React.ReactNode;
@@ -37,7 +38,7 @@ const GlitchText = React.forwardRef<HTMLHeadingElement, GlitchTextProps>(
       },
       glitch: {
         textShadow: `
-          ${config.offset}px 0 0 rgba(180, 255, 0, 0.5),
+          ${config.offset}px 0 0 rgba(0, 200, 194, 0.5),
           -${config.offset}px 0 0 rgba(255, 0, 255, 0.5),
           0 ${config.offset}px 0 rgba(0, 255, 255, 0.5)
         `,
@@ -72,7 +73,7 @@ const GlitchText = React.forwardRef<HTMLHeadingElement, GlitchTextProps>(
           style={{
             clipPath: "polygon(0 0, 100% 0, 100% 45%, 0 45%)",
             transform: "translate(2px, -2px)",
-            color: "#b4ff00",
+            color: colors.accent,
             opacity: 0.8,
             mixBlendMode: "screen",
             pointerEvents: "none",

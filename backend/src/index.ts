@@ -3,8 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
+import { sessionMiddleware } from './middleware/session.middleware';
 import { startG2ASyncJob, startStockCheckJob } from './jobs/g2a-sync.job';
 
 // Load environment variables
@@ -20,8 +22,10 @@ app.use(cors({
   credentials: true,
 }));
 app.use(morgan('dev'));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(sessionMiddleware);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -36,6 +40,9 @@ import paymentRoutes from './routes/payment.routes';
 import userRoutes from './routes/user.routes';
 import blogRoutes from './routes/blog.routes';
 import adminRoutes from './routes/admin.routes';
+import cartRoutes from './routes/cart.routes';
+import wishlistRoutes from './routes/wishlist.routes';
+import faqRoutes from './routes/faq.routes';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/games', gameRoutes);
@@ -44,6 +51,9 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/faq', faqRoutes);
 
 // Error handling
 app.use(notFoundHandler);

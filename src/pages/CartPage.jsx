@@ -1,13 +1,17 @@
 // Cart/Checkout Page - GKEYS Gaming Store
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { gamesApi } from '../services/gamesApi';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { Container } from '../components/ui/container';
+import { useCart } from '../hooks/useCart';
+import { CartItem } from '../components/cart/CartItem';
+import { CheckoutSummary } from '../components/cart/CheckoutSummary';
 
 const theme = {
   colors: {
-    primary: '#00FF66',
+    primary: '#00C8C2',
     primaryDark: '#00CC52',
     background: '#0D0D0D',
     surface: '#1A1A1A',
@@ -18,7 +22,7 @@ const theme = {
     textMuted: '#666666',
     border: '#333333',
     discount: '#FF4444',
-    success: '#00FF66',
+    success: '#00C8C2',
     error: '#FF4444',
   },
 };
@@ -40,77 +44,69 @@ const Icons = {
   Instagram: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>,
 };
 
-const initialCartItems = [
-  { id: 1, title: 'Cyberpunk 2077', price: 59.99, originalPrice: 69.99, image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=120&h=160&fit=crop', platform: 'Steam', quantity: 1 },
-  { id: 2, title: 'Elden Ring', price: 49.99, originalPrice: null, image: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=120&h=160&fit=crop', platform: 'Steam', quantity: 1 },
-  { id: 3, title: 'Red Dead Redemption 2', price: 39.99, originalPrice: 59.99, image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=120&h=160&fit=crop', platform: 'Rockstar', quantity: 2 },
-];
-
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState(initialCartItems);
+  const navigate = useNavigate();
+  const { cart, loading: cartLoading } = useCart();
   const [recommendedGames, setRecommendedGames] = useState([]);
   const [promoCode, setPromoCode] = useState('');
+  const [promoDiscount, setPromoDiscount] = useState(0);
   
   // Load recommended games based on cart items
   useEffect(() => {
     const loadRecommendations = async () => {
       try {
-        // Get random games as recommendations (in real app, would fetch similar games)
-        const games = await gamesApi.getRandomGames(8);
-        setRecommendedGames(games);
+        if (cart && cart.items.length > 0) {
+          // Get similar games based on first cart item
+          const firstGameId = cart.items[0].gameId;
+          const similar = await gamesApi.getSimilarGames(firstGameId, 8);
+          setRecommendedGames(similar);
+        } else {
+          // Get random games if cart is empty
+          const games = await gamesApi.getRandomGames(8);
+          setRecommendedGames(games);
+        }
       } catch (error) {
         console.error('Failed to load recommendations:', error);
-        // Fallback to empty array
         setRecommendedGames([]);
       }
     };
     loadRecommendations();
-  }, []);
-  const [promoApplied, setPromoApplied] = useState(false);
-  const [promoDiscount, setPromoDiscount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('balance');
-  const userBalance = 250.00;
+  }, [cart]);
 
-  const updateQuantity = (id, delta) => {
-    setCartItems(items => items.map(item => 
-      item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
-    ));
-  };
-
-  const removeItem = (id) => {
-    setCartItems(items => items.filter(item => item.id !== id));
-  };
-
-  const applyPromo = () => {
-    if (promoCode.toUpperCase() === 'GKEYS10') {
-      setPromoApplied(true);
+  const handlePromoApply = async (code) => {
+    // TODO: Implement promo code validation via API
+    if (code.toUpperCase() === 'GKEYS10') {
       setPromoDiscount(10);
+      return { success: true, discount: 10 };
     }
+    return { success: false, discount: 0 };
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const discount = promoApplied ? (subtotal * promoDiscount / 100) : 0;
-  const total = subtotal - discount;
-  const canPayWithBalance = userBalance >= total;
+  const handleCreateOrder = async (promoCode) => {
+    // Navigate to checkout page
+    navigate('/checkout');
+  };
 
   const responsiveCSS = `
     .checkout-layout { display: grid; grid-template-columns: 1fr 380px; gap: 32px; }
     .cart-items { display: flex; flex-direction: column; gap: 16px; }
     .cart-item { display: grid; grid-template-columns: 100px 1fr auto; gap: 16px; align-items: center; }
-    .recommended-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .recommended-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; width: 100%; }
+    .recommended-grid > * { min-width: 0; }
     @media (max-width: 1024px) {
-      .checkout-layout { grid-template-columns: 1fr; }
+      .checkout-layout { grid-template-columns: 1fr; padding: 0 12px; }
       .order-summary { position: static; }
-      .recommended-grid { grid-template-columns: repeat(3, 1fr); }
+      .recommended-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 768px) {
+      .checkout-layout { padding: 0 12px; }
       .cart-item { grid-template-columns: 80px 1fr; }
       .cart-item-actions { grid-column: 1 / -1; display: flex; justify-content: space-between; margin-top: 8px; }
-      .recommended-grid { grid-template-columns: repeat(2, 1fr); }
+      .recommended-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .desktop-nav, .desktop-search, .desktop-login { display: none; }
     }
     @media (max-width: 480px) {
-      .recommended-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .recommended-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     }
   `;
 
@@ -124,7 +120,7 @@ export default function CartPage() {
     iconButton: { background: 'none', border: 'none', color: theme.colors.text, cursor: 'pointer', padding: '8px' },
     searchButton: { display: 'flex', alignItems: 'center', gap: '8px', background: theme.colors.surface, border: 'none', color: theme.colors.textSecondary, padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' },
     loginButton: { background: theme.colors.primary, color: '#000', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' },
-    main: { maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' },
+    main: { maxWidth: '1200px', margin: '0 auto' },
     pageTitle: { fontSize: '28px', fontWeight: '700', marginBottom: '8px' },
     itemCount: { color: theme.colors.textMuted, fontSize: '14px', marginBottom: '32px' },
     cartCard: { background: theme.colors.surface, borderRadius: '12px', padding: '20px' },
@@ -186,41 +182,28 @@ export default function CartPage() {
     <>
       <style>{responsiveCSS}</style>
       {/* Main Content */}
-        <main style={styles.main}>
+        <main className="max-w-[1200px] mx-auto">
+          <Container padding="md">
           <h1 style={styles.pageTitle}>Shopping Cart</h1>
-          <p style={styles.itemCount}>{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}</p>
+          {cartLoading ? (
+            <p style={styles.itemCount}>Loading...</p>
+          ) : cart ? (
+            <p style={styles.itemCount}>
+              {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'}
+            </p>
+          ) : null}
 
-          {cartItems.length > 0 ? (
+          {cartLoading ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: theme.colors.text }}>
+              Loading cart...
+            </div>
+          ) : cart && cart.items.length > 0 ? (
             <div className="checkout-layout">
               {/* Cart Items */}
               <div>
                 <div className="cart-items">
-                  {cartItems.map(item => (
-                    <div key={item.id} style={styles.cartCard}>
-                      <div className="cart-item">
-                        <img src={item.image} alt={item.title} style={styles.cartImage} />
-                        <div style={styles.cartInfo}>
-                          <h3 style={styles.cartTitle}>{item.title}</h3>
-                          <p style={styles.cartPlatform}>{item.platform}</p>
-                          <div>
-                            <span style={styles.cartPrice}>${(item.price * item.quantity).toFixed(2)}</span>
-                            {item.originalPrice && (
-                              <span style={styles.cartOriginalPrice}>${(item.originalPrice * item.quantity).toFixed(2)}</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="cart-item-actions" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
-                          <div style={styles.quantityControl}>
-                            <button style={styles.quantityBtn} onClick={() => updateQuantity(item.id, -1)}><Icons.Minus /></button>
-                            <span style={styles.quantityValue}>{item.quantity}</span>
-                            <button style={styles.quantityBtn} onClick={() => updateQuantity(item.id, 1)}><Icons.Plus /></button>
-                          </div>
-                          <button style={styles.removeBtn} onClick={() => removeItem(item.id)}>
-                            <Icons.Trash /> Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                  {cart.items.map((item) => (
+                    <CartItem key={item.gameId} item={item} />
                   ))}
                 </div>
 
@@ -256,102 +239,25 @@ export default function CartPage() {
               </div>
 
               {/* Order Summary */}
-              <div style={styles.summaryCard} className="order-summary">
-                <h2 style={styles.summaryTitle}>Order Summary</h2>
-
-                {/* Promo Code */}
-                <div style={styles.promoInput}>
-                  <input
-                    type="text"
-                    placeholder="Promo code"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
-                    style={styles.input}
-                  />
-                  <button onClick={applyPromo} style={styles.applyBtn}>Apply</button>
-                </div>
-
-                {promoApplied && (
-                  <div style={styles.promoSuccess}>
-                    <Icons.Check /> GKEYS10 applied (-{promoDiscount}%)
-                  </div>
-                )}
-
-                {/* Summary */}
-                <div style={styles.summaryRow}>
-                  <span style={styles.summaryLabel}>Subtotal</span>
-                  <span style={styles.summaryValue}>${subtotal.toFixed(2)}</span>
-                </div>
-                {promoApplied && (
-                  <div style={styles.summaryRow}>
-                    <span style={styles.summaryLabel}>Promo discount</span>
-                    <span style={{ ...styles.summaryValue, color: theme.colors.success }}>-${discount.toFixed(2)}</span>
-                  </div>
-                )}
-                <div style={styles.totalRow}>
-                  <span style={styles.totalLabel}>Total</span>
-                  <span style={styles.totalValue}>${total.toFixed(2)}</span>
-                </div>
-
-                {/* Payment Method */}
-                <div style={styles.paymentSection}>
-                  <p style={styles.paymentTitle}>Payment Method</p>
-                  
-                  <div 
-                    style={styles.paymentOption(paymentMethod === 'balance')}
-                    onClick={() => setPaymentMethod('balance')}
-                  >
-                    <div style={styles.paymentRadio(paymentMethod === 'balance')}>
-                      {paymentMethod === 'balance' && <div style={styles.paymentRadioInner} />}
-                    </div>
-                    <Icons.Wallet />
-                    <div style={styles.paymentInfo}>
-                      <p style={styles.paymentName}>Account Balance</p>
-                      <p style={styles.paymentBalance}>${userBalance.toFixed(2)} available</p>
-                    </div>
-                  </div>
-
-                  <div 
-                    style={styles.paymentOption(paymentMethod === 'card')}
-                    onClick={() => setPaymentMethod('card')}
-                  >
-                    <div style={styles.paymentRadio(paymentMethod === 'card')}>
-                      {paymentMethod === 'card' && <div style={styles.paymentRadioInner} />}
-                    </div>
-                    <Icons.CreditCard />
-                    <div style={styles.paymentInfo}>
-                      <p style={styles.paymentName}>Credit/Debit Card</p>
-                      <p style={styles.paymentBalance}>Visa, Mastercard, etc.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Checkout Button */}
-                <button 
-                  style={{
-                    ...styles.checkoutBtn,
-                    ...(paymentMethod === 'balance' && !canPayWithBalance ? styles.disabledBtn : {})
-                  }}
-                  disabled={paymentMethod === 'balance' && !canPayWithBalance}
-                >
-                  {paymentMethod === 'balance' ? 'Pay with Balance' : 'Proceed to Payment'}
-                </button>
-                
-                {paymentMethod === 'balance' && !canPayWithBalance && (
-                  <p style={styles.insufficientBalance}>
-                    Insufficient balance. Please top up or use another payment method.
-                  </p>
-                )}
-              </div>
+              <CheckoutSummary
+                cart={cart}
+                promoCode={promoCode}
+                onPromoCodeChange={setPromoCode}
+                onPromoApply={handlePromoApply}
+                onCreateOrder={handleCreateOrder}
+              />
             </div>
           ) : (
             <div style={styles.emptyCart}>
               <div style={styles.emptyIcon}>🛒</div>
               <h2 style={styles.emptyTitle}>Your cart is empty</h2>
               <p style={styles.emptyText}>Browse our catalog and find your next adventure!</p>
-              <button style={styles.browseBtn}>Browse Catalog</button>
+              <Link to="/catalog">
+                <button type="button" style={styles.browseBtn}>Browse Catalog</button>
+              </Link>
             </div>
           )}
+          </Container>
         </main>
     </>
   );

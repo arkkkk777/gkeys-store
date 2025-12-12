@@ -1,3 +1,27 @@
+<!--
+  ============================================================================
+  SYNC IMPACT REPORT
+  ============================================================================
+  Version Change: 1.0.0 → 1.0.1 (PATCH)
+  Bump Rationale: Template consistency update - added explicit constitution check gates to plan-template.md
+  
+  Modified Sections:
+  - None (constitution content unchanged)
+  
+  Templates Updated:
+  ✅ .specify/templates/plan-template.md - Added explicit constitution check gates based on core principles
+  
+  Templates Reviewed (no changes needed):
+  ✅ .specify/templates/spec-template.md - No constitution references to update
+  ✅ .specify/templates/tasks-template.md - No constitution references to update
+  ✅ .specify/templates/checklist-template.md - No constitution references to update
+  ✅ .specify/templates/agent-file-template.md - No constitution references to update
+  
+  Follow-up TODOs:
+  - None
+  ============================================================================
+-->
+
 # GKEYS Store Constitution
 
 ## Core Principles
@@ -52,7 +76,7 @@ All code must be fully typed with TypeScript. No `any` types without explicit ju
 
 ### Design System
 - **Primary Color**: `#00FF66` (Bright Green)
-- **Accent Color**: `#b4ff00` (Neon Green for effects)
+- **Accent Color**: `#00C8C2` (Cyan-Turquoise for effects)
 - **Background**: `#0D0D0D` (Dark)
 - **Surface**: `#1A1A1A` / `#2A2A2A`
 - **Text Hierarchy**: `#FFFFFF` / `#999999` / `#666666`
@@ -125,4 +149,4 @@ This constitution supersedes all other development practices. All code must comp
 2. Approved through code review
 3. Added as amendments to this constitution if permanent
 
-**Version**: 1.0.0 | **Ratified**: 2024-12-05 | **Last Amended**: 2024-12-05
+**Version**: 1.0.1 | **Ratified**: 2024-12-05 | **Last Amended**: 2024-12-05

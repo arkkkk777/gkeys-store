@@ -1,5 +1,8 @@
 import apiClient from './api';
 
+// Check if we're in development mode
+const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
+
 export interface Game {
   id: string;
   title: string;
@@ -552,8 +555,16 @@ export const gamesApi = {
         { params }
       );
       return response.data;
-    } catch {
-      // Fallback to mock data
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch games from API:', error);
+        throw new Error('Unable to load games. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       const filtered = filterMockGames(mockGamesFromG2A, filters);
       const page = filters?.page || 1;
       const pageSize = filters?.pageSize || 36;
@@ -574,9 +585,20 @@ export const gamesApi = {
     try {
       const response = await apiClient.get<{ success: boolean; data: Game }>(`/api/games/${id}`);
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch game from API:', error);
+        throw new Error('Unable to load game. Please try again later.');
+      }
+      // Fallback to mock data only in development
       const game = mockGamesFromG2A.find(g => g.id === id);
-      if (game) return game;
+      if (game) {
+        if (isDevelopment) {
+          console.warn('API request failed, using mock data (development mode):', error);
+        }
+        return game;
+      }
       throw new Error('Game not found');
     }
   },
@@ -587,9 +609,20 @@ export const gamesApi = {
         `/api/games/slug/${slug}`
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch game from API:', error);
+        throw new Error('Unable to load game. Please try again later.');
+      }
+      // Fallback to mock data only in development
       const game = mockGamesFromG2A.find(g => g.slug === slug);
-      if (game) return game;
+      if (game) {
+        if (isDevelopment) {
+          console.warn('API request failed, using mock data (development mode):', error);
+        }
+        return game;
+      }
       throw new Error('Game not found');
     }
   },
@@ -603,7 +636,16 @@ export const gamesApi = {
         }
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch best sellers from API:', error);
+        throw new Error('Unable to load best sellers. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       let games = mockGamesFromG2A.filter(g => g.isBestSeller);
       if (genre) {
         games = games.filter(g => g.genres.includes(genre));
@@ -618,7 +660,16 @@ export const gamesApi = {
         '/api/games/new-in-catalog'
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch new in catalog from API:', error);
+        throw new Error('Unable to load new games. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       return mockGamesFromG2A.filter(g => g.isNew).slice(0, 15);
     }
   },
@@ -629,7 +680,16 @@ export const gamesApi = {
         '/api/games/preorders'
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch preorders from API:', error);
+        throw new Error('Unable to load preorders. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       return mockGamesFromG2A.filter(g => g.isPreorder).slice(0, 10);
     }
   },
@@ -638,7 +698,16 @@ export const gamesApi = {
     try {
       const response = await apiClient.get<{ success: boolean; data: Game[] }>('/api/games/new');
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch new games from API:', error);
+        throw new Error('Unable to load new games. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       // Return games released within last 2 weeks (simulated)
       return mockGamesFromG2A.slice(0, 8);
     }
@@ -650,7 +719,16 @@ export const gamesApi = {
         `/api/games/by-genre/${genre}`
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch games by genre from API:', error);
+        throw new Error('Unable to load games. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       return mockGamesFromG2A.filter(g => 
         g.genres.some(gGenre => gGenre.toLowerCase() === genre.toLowerCase())
       ).slice(0, 20);
@@ -666,7 +744,16 @@ export const gamesApi = {
         }
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch random games from API:', error);
+        throw new Error('Unable to load games. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       // Shuffle and return random games
       const shuffled = [...mockGamesFromG2A].sort(() => Math.random() - 0.5);
       return shuffled.slice(0, count);
@@ -682,7 +769,16 @@ export const gamesApi = {
         }
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch similar games from API:', error);
+        throw new Error('Unable to load similar games. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       // Find games with similar genres
       const game = mockGamesFromG2A.find(g => g.id === gameId);
       if (!game) return mockGamesFromG2A.slice(0, count);
@@ -702,7 +798,16 @@ export const gamesApi = {
         }
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to search games from API:', error);
+        throw new Error('Unable to search games. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       const q = query.toLowerCase();
       return mockGamesFromG2A.filter(g => 
         g.title.toLowerCase().includes(q) || 
@@ -717,7 +822,16 @@ export const gamesApi = {
         '/api/games/genres'
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch genres from API:', error);
+        throw new Error('Unable to load genres. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       const genres = new Set<string>();
       mockGamesFromG2A.forEach(g => g.genres.forEach(genre => genres.add(genre)));
       return Array.from(genres).map(name => ({ name, slug: name.toLowerCase().replace(/\s+/g, '-') }));
@@ -730,7 +844,16 @@ export const gamesApi = {
         '/api/games/platforms'
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch platforms from API:', error);
+        throw new Error('Unable to load platforms. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       const platforms = new Set<string>();
       mockGamesFromG2A.forEach(g => g.platforms.forEach(p => platforms.add(p)));
       return Array.from(platforms).map(name => ({ name, slug: name.toLowerCase().replace(/\s+/g, '-') }));
@@ -755,7 +878,16 @@ export const gamesApi = {
         multiplayer: boolean[];
       } }>('/api/games/filter-options');
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch filter options from API:', error);
+        throw new Error('Unable to load filter options. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       const genres = new Set<string>();
       const platforms = new Set<string>();
       const publishers = new Set<string>();
@@ -783,7 +915,16 @@ export const gamesApi = {
         '/api/games/collections'
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch collections from API:', error);
+        throw new Error('Unable to load collections. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       return [
         {
           id: 'action-collection',
@@ -810,13 +951,75 @@ export const gamesApi = {
     }
   },
 
+  /**
+   * Get autocomplete suggestions for search query
+   * @param query - Search query (minimum 2 characters)
+   * @param limit - Maximum number of results (default: 10)
+   * @returns Array of search suggestions
+   */
+  getAutocomplete: async (query: string, limit: number = 10): Promise<Array<{
+    id: string;
+    title: string;
+    image: string;
+    slug: string;
+    relevanceScore: number;
+  }>> => {
+    try {
+      const response = await apiClient.get<{ success: boolean; data: Array<{
+        id: string;
+        title: string;
+        image: string;
+        slug: string;
+        relevanceScore: number;
+      }> }>('/api/games/autocomplete', {
+        params: { q: query, limit: limit.toString() },
+      });
+      return response.data;
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch autocomplete from API:', error);
+        throw new Error('Unable to load search suggestions. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
+      // Fallback to mock data - simple search
+      const q = query.toLowerCase();
+      const matches = mockGamesFromG2A
+        .filter(g => 
+          g.title.toLowerCase().includes(q) || 
+          g.description.toLowerCase().includes(q)
+        )
+        .slice(0, limit)
+        .map((g, index) => ({
+          id: g.id,
+          title: g.title,
+          image: g.image,
+          slug: g.slug,
+          relevanceScore: 1 - (index * 0.1), // Simple relevance scoring
+        }));
+      return matches;
+    }
+  },
+
   getWishlist: async (): Promise<Game[]> => {
     try {
       const response = await apiClient.get<{ success: boolean; data: Game[] }>(
         '/api/user/wishlist'
       );
       return response.data;
-    } catch {
+    } catch (error) {
+      // In production, throw error instead of using mock data
+      if (!isDevelopment) {
+        console.error('Failed to fetch wishlist from API:', error);
+        throw new Error('Unable to load wishlist. Please try again later.');
+      }
+      // Fallback to mock data only in development
+      if (isDevelopment) {
+        console.warn('API request failed, using mock data (development mode):', error);
+      }
       // Return mock wishlist - first 6 games
       return mockGamesFromG2A.slice(0, 6);
     }
