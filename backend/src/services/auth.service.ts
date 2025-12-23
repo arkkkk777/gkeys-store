@@ -72,9 +72,7 @@ export const register = async (data: RegisterRequest): Promise<AuthResponse> => 
 
 export const login = async (data: LoginRequest): Promise<AuthResponse> => {
   if (!prisma) {
-    const error: AppError = new Error('Database not available');
-    error.statusCode = 503;
-    throw error;
+    throw new AppError('Database not available', 503);
   }
 
   const { email, password } = data;
