@@ -27,6 +27,8 @@
 VITE_API_BASE_URL=https://your-backend-api-url.com/api
 ```
 
+**Important**: The `/api` suffix is required as all backend routes are prefixed with `/api`.
+
 ### Настройка в Vercel Dashboard
 
 1. Перейдите в настройки проекта: https://vercel.com/deffgods-projects/gkeys2/settings

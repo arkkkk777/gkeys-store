@@ -110,31 +110,51 @@ app.use('/api/g2a', g2aWebhookRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Initialize database and start server
-async function startServer() {
-  // Check database connection
-  const dbConnected = await initializeDatabase();
-  if (!dbConnected) {
-    console.warn('⚠️  Starting server without database connection. Some features will not work.');
+// Initialize database (for both server and serverless)
+let dbInitialized = false;
+
+async function initializeApp(): Promise<boolean> {
+  if (!dbInitialized) {
+    const dbConnected = await initializeDatabase();
+    dbInitialized = true;
+    return dbConnected;
   }
-  
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-    
-    // Start scheduled jobs only if database is connected
-    if (process.env.NODE_ENV !== 'test' && dbConnected) {
-      startG2ASyncJob();
-      startStockCheckJob();
-      console.log('⏰ Scheduled jobs started');
-    }
-  });
+  return true;
 }
 
-startServer().catch((error) => {
-  console.error('❌ Failed to start server:', error);
-  process.exit(1);
-});
+// Initialize database and start server (only if not in Vercel/serverless environment)
+const isVercel = !!process.env.VERCEL;
+const isServerless = !!process.env.VERCEL_ENV;
+
+if (!isVercel && !isServerless) {
+  // Running as standalone server (development/production server)
+  async function startServer() {
+    const dbConnected = await initializeApp();
+    
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+      
+      // Start scheduled jobs only if database is connected
+      if (process.env.NODE_ENV !== 'test' && dbConnected) {
+        startG2ASyncJob();
+        startStockCheckJob();
+        console.log('⏰ Scheduled jobs started');
+      }
+    });
+  }
+
+  startServer().catch((error) => {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  });
+} else {
+  // Running as Vercel serverless function
+  // Initialize database on first request (lazy initialization)
+  initializeApp().catch((error) => {
+    console.error('⚠️  Database initialization failed:', error);
+  });
+}
 
 export default app;
 

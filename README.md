@@ -124,8 +124,10 @@ createdb gkeys_store
 Create a `.env` file in the project root:
 
 ```env
-VITE_API_URL=http://localhost:3001
+VITE_API_BASE_URL=http://localhost:3001/api
 ```
+
+**Note**: The `/api` suffix is important as all backend routes are prefixed with `/api`.
 
 #### Backend Configuration
 
@@ -141,6 +143,13 @@ CORS_ORIGIN=http://localhost:5173
 
 # JWT Authentication
 JWT_SECRET="your-secret-key-change-in-production"
+JWT_REFRESH_SECRET="your-refresh-secret-change-in-production"
+
+# G2A Integration
+G2A_API_URL="https://api.g2a.com/integration-api/v1"
+G2A_API_KEY="your-g2a-api-key"
+G2A_API_HASH="your-g2a-api-hash"
+G2A_ENV="sandbox"
 
 # Optional: Redis (for caching and queues)
 REDIS_URL="redis://localhost:6379"
@@ -165,8 +174,22 @@ npm run prisma:generate
 # Run database migrations
 npm run prisma:migrate
 
+# Verify database connection
+npm run db:check
+
 # (Optional) Seed database with test data
 npm run prisma:seed
+```
+
+### Step 4: Verify Setup
+
+```bash
+# Test backend endpoints
+cd backend
+npm run test:endpoints
+
+# Check health
+curl http://localhost:3001/health
 ```
 
 ## 🚀 Running the Application
