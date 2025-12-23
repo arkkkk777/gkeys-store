@@ -4,10 +4,10 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { G2AError, G2AErrorCode } from '../types/g2a';
 import redisClient from '../config/redis';
+import { getG2AConfig } from '../config/g2a';
 
-const G2A_API_HASH = process.env.G2A_API_HASH || '';
-const G2A_API_KEY = process.env.G2A_API_KEY || '';
-const G2A_API_URL = process.env.G2A_API_URL || 'https://www.g2a.com/integration-api/v1';
+const { apiHash: G2A_API_HASH, apiKey: G2A_API_KEY, baseUrl: G2A_API_URL, timeoutMs: G2A_TIMEOUT_MS, retryMax: G2A_RETRY_MAX } = getG2AConfig();
+const G2A_API_URL_RAW = process.env.G2A_API_URL || 'https://api.g2a.com/integration-api/v1';
 
 const MARKUP_PERCENTAGE = 2; // 2% markup on G2A prices
 
@@ -96,7 +96,7 @@ const releaseSyncLock = async (): Promise<void> => {
  */
 const retryWithBackoff = async <T>(
   fn: () => Promise<T>,
-  maxRetries: number = 3,
+  maxRetries: number = G2A_RETRY_MAX,
   initialDelay: number = 1000
 ): Promise<T> => {
   let lastError: Error | null = null;
@@ -110,6 +110,10 @@ const retryWithBackoff = async <T>(
       if (attempt < maxRetries - 1) {
         const delay = initialDelay * Math.pow(2, attempt);
         logger.warn(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`, { error: lastError.message });
+        
+        // Record retry metric (async, don't await)
+        import('./g2a-metrics.service').then(m => m.incrementMetric('requests_retry')).catch(() => {});
+        
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -230,28 +234,42 @@ const handleG2AError = (error: unknown, operation: string): G2AError => {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError;
     const status = axiosError.response?.status;
-    const data = axiosError.response?.data as Record<string, unknown> | undefined;
+    const data = axiosError.response?.data;
+    
+    // Check if response is HTML (indicates endpoint not found or wrong URL)
+    const isHtmlResponse = typeof data === 'string' && data.trim().startsWith('<!DOCTYPE html>');
+    const dataObj = typeof data === 'object' && data !== null ? data as Record<string, unknown> : undefined;
 
     logger.error(`G2A API error in ${operation}`, {
       status,
       message: axiosError.message,
       url: axiosError.config?.url,
-      data,
+      baseURL: axiosError.config?.baseURL,
+      isHtmlResponse,
+      data: isHtmlResponse ? 'HTML response (endpoint may not exist)' : dataObj,
     });
 
     // Handle specific HTTP status codes
     if (status === 401 || status === 403) {
       return new G2AError(
         G2AErrorCode.G2A_AUTH_FAILED,
-        `Authentication failed: ${data?.message || axiosError.message}`,
+        `Authentication failed: ${dataObj?.message || axiosError.message}`,
         { status, operation }
       );
     }
 
     if (status === 404) {
+      // If 404 with HTML response, it's likely an endpoint/URL issue, not a missing product
+      if (isHtmlResponse) {
+        return new G2AError(
+          G2AErrorCode.G2A_API_ERROR,
+          `Endpoint not found (404): Check API URL configuration. Base URL: ${axiosError.config?.baseURL}`,
+          { status, operation, isEndpointError: true }
+        );
+      }
       return new G2AError(
         G2AErrorCode.G2A_PRODUCT_NOT_FOUND,
-        `Product not found: ${data?.message || axiosError.message}`,
+        `Product not found: ${dataObj?.message || axiosError.message}`,
         { status, operation }
       );
     }
@@ -365,33 +383,62 @@ const createG2AClient = (): AxiosInstance => {
   // Validate credentials before creating client
   validateG2ACredentials();
 
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  const hash = crypto
+  // Determine authentication method based on URL
+  // Sandbox API uses simple Authorization header: "hash, key"
+  // Production API uses hash-based auth with timestamp
+  const isSandbox = G2A_API_URL.includes('sandboxapi.g2a.com');
+  
+  // Only generate hash for production API (sandbox uses simple auth)
+  const timestamp = isSandbox ? undefined : Math.floor(Date.now() / 1000).toString();
+  const hash = isSandbox ? undefined : crypto
     .createHash('sha256')
-    .update(G2A_API_HASH + G2A_API_KEY + timestamp)
+    .update(G2A_API_HASH + G2A_API_KEY + timestamp!)
     .digest('hex');
 
-  logger.debug('Creating G2A API client', {
+  const logData: Record<string, unknown> = {
     baseURL: G2A_API_URL,
-    timestamp,
-    hashPrefix: hash.substring(0, 8) + '...',
-  });
+    originalURL: G2A_API_URL_RAW,
+    isSandbox,
+    authMethod: isSandbox ? 'Authorization header' : 'Hash-based',
+  };
+  
+  if (timestamp) {
+    logData.timestamp = timestamp;
+  }
+  
+  if (hash) {
+    logData.hashPrefix = hash.substring(0, 8) + '...';
+  }
+  
+  logger.debug('Creating G2A API client', logData);
+  
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (isSandbox) {
+    // Sandbox uses simple Authorization header format: "hash, key"
+    headers.Authorization = `${G2A_API_HASH}, ${G2A_API_KEY}`;
+  } else {
+    // Production uses hash-based authentication with timestamp
+    headers['X-API-HASH'] = G2A_API_HASH;
+    headers['X-API-KEY'] = G2A_API_KEY;
+    headers['X-G2A-Timestamp'] = timestamp!;
+    headers['X-G2A-Hash'] = hash!;
+  }
 
   const client = axios.create({
     baseURL: G2A_API_URL,
-    headers: {
-      'X-API-HASH': G2A_API_HASH,
-      'X-API-KEY': G2A_API_KEY,
-      'X-G2A-Timestamp': timestamp,
-      'X-G2A-Hash': hash,
-      'Content-Type': 'application/json',
-    },
-    timeout: 30000,
+    headers,
+    timeout: G2A_TIMEOUT_MS,
   });
 
-  // Add request interceptor for audit logging
+  // Add request interceptor for audit logging and metrics
   client.interceptors.request.use(
     (config) => {
+      // Store start time for latency measurement
+      (config as any).metadata = { startTime: Date.now() };
+      
       logger.audit('G2A_API_REQUEST', {
         method: config.method?.toUpperCase(),
         url: config.url,
@@ -399,6 +446,10 @@ const createG2AClient = (): AxiosInstance => {
         params: config.params,
         data: config.data,
       });
+      
+      // Increment total requests metric (async, don't await)
+      import('./g2a-metrics.service').then(m => m.incrementMetric('requests_total')).catch(() => {});
+      
       return config;
     },
     (error) => {
@@ -407,18 +458,28 @@ const createG2AClient = (): AxiosInstance => {
     }
   );
 
-  // Add response interceptor for audit logging and rate limit detection
+  // Add response interceptor for audit logging, rate limit detection, and metrics
   client.interceptors.response.use(
     (response) => {
+      const startTime = (response.config as any).metadata?.startTime;
+      const latency = startTime ? Date.now() - startTime : 0;
+      
       logger.audit('G2A_API_RESPONSE', {
         method: response.config.method?.toUpperCase(),
         url: response.config.url,
         status: response.status,
         statusText: response.statusText,
+        latency,
       }, {
         status: response.status,
         dataKeys: response.data ? Object.keys(response.data) : [],
       });
+
+      // Record metrics (async, don't await)
+      import('./g2a-metrics.service').then(m => {
+        m.incrementMetric('requests_success');
+        if (latency > 0) m.recordLatency(latency);
+      }).catch(() => {});
 
       // Check for rate limit headers (if G2A API provides them)
       const rateLimitRemaining = response.headers['x-ratelimit-remaining'];
@@ -434,6 +495,9 @@ const createG2AClient = (): AxiosInstance => {
       return response;
     },
     (error) => {
+      const startTime = (error.config as any)?.metadata?.startTime;
+      const latency = startTime ? Date.now() - startTime : 0;
+      
       // Log error response for audit
       if (axios.isAxiosError(error)) {
         logger.audit('G2A_API_ERROR', {
@@ -441,11 +505,18 @@ const createG2AClient = (): AxiosInstance => {
           url: error.config?.url,
           status: error.response?.status,
           statusText: error.response?.statusText,
+          latency,
         }, {
           status: error.response?.status,
           message: error.message,
           data: error.response?.data,
         });
+
+        // Record error metric (async, don't await)
+        import('./g2a-metrics.service').then(m => {
+          m.incrementMetric('requests_error');
+          if (latency > 0) m.recordLatency(latency);
+        }).catch(() => {});
 
         // Detect rate limiting (429 status)
         if (error.response?.status === 429) {

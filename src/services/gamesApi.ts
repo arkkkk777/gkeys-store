@@ -650,7 +650,7 @@ export const gamesApi = {
       if (genre) {
         games = games.filter(g => g.genres.includes(genre));
       }
-      return games.slice(0, 8);
+      return games.slice(0, 30);
     }
   },
 
@@ -670,7 +670,7 @@ export const gamesApi = {
       if (isDevelopment) {
         console.warn('API request failed, using mock data (development mode):', error);
       }
-      return mockGamesFromG2A.filter(g => g.isNew).slice(0, 15);
+      return mockGamesFromG2A.filter(g => g.isNew).slice(0, 40);
     }
   },
 
@@ -690,7 +690,7 @@ export const gamesApi = {
       if (isDevelopment) {
         console.warn('API request failed, using mock data (development mode):', error);
       }
-      return mockGamesFromG2A.filter(g => g.isPreorder).slice(0, 10);
+      return mockGamesFromG2A.filter(g => g.isPreorder).slice(0, 30);
     }
   },
 
@@ -709,7 +709,7 @@ export const gamesApi = {
         console.warn('API request failed, using mock data (development mode):', error);
       }
       // Return games released within last 2 weeks (simulated)
-      return mockGamesFromG2A.slice(0, 8);
+      return mockGamesFromG2A.slice(0, 30);
     }
   },
 
@@ -731,7 +731,7 @@ export const gamesApi = {
       }
       return mockGamesFromG2A.filter(g => 
         g.genres.some(gGenre => gGenre.toLowerCase() === genre.toLowerCase())
-      ).slice(0, 20);
+      ).slice(0, 40);
     }
   },
 
@@ -931,21 +931,21 @@ export const gamesApi = {
           title: 'Action Games',
           type: 'genre',
           value: 'Action',
-          games: mockGamesFromG2A.filter(g => g.genres.includes('Action')).slice(0, 10),
+          games: mockGamesFromG2A.filter(g => g.genres.includes('Action')).slice(0, 40),
         },
         {
           id: 'rpg-collection',
           title: 'RPG Games',
           type: 'genre',
           value: 'RPG',
-          games: mockGamesFromG2A.filter(g => g.genres.includes('RPG')).slice(0, 10),
+          games: mockGamesFromG2A.filter(g => g.genres.includes('RPG')).slice(0, 40),
         },
         {
           id: 'ubisoft-collection',
           title: 'Ubisoft Games',
           type: 'publisher',
           value: 'Ubisoft',
-          games: mockGamesFromG2A.filter(g => g.publisher === 'Ubisoft').slice(0, 10),
+          games: mockGamesFromG2A.filter(g => g.publisher === 'Ubisoft').slice(0, 40),
         },
       ];
     }

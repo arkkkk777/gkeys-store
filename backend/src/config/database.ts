@@ -1,28 +1,58 @@
 import { PrismaClient } from '@prisma/client';
 import { withAccelerate } from '@prisma/extension-accelerate';
 
-
-let prisma: ReturnType<typeof createPrismaClient>;
+let prisma: ReturnType<typeof createPrismaClient> | null = null;
 
 function createPrismaClient() {
   return new PrismaClient({
-    log: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['error'],
+    log: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['error', 'warn'],
   }).$extends(withAccelerate());
 }
 
-try {
-  prisma = createPrismaClient();
-  
-  // Test connection
-  prisma.$connect().catch(() => {
-    console.warn('⚠️  Database connection failed. Some features may not work.');
-  });
-  
-  console.log('✅ Prisma Client with Accelerate initialized');
-} catch (error) {
-  console.warn('⚠️  Failed to initialize Prisma Client:', error);
-  // @ts-expect-error - Create a mock client for development
-  prisma = null;
+/**
+ * Initialize Prisma client and test connection
+ */
+export async function initializeDatabase(): Promise<boolean> {
+  try {
+    if (!prisma) {
+      prisma = createPrismaClient();
+    }
+    
+    // Test connection with a simple query
+    await prisma.$queryRaw`SELECT 1`;
+    
+    console.log('✅ Database connection established');
+    return true;
+  } catch (error) {
+    console.error('❌ Database connection failed:', error);
+    console.warn('⚠️  Some features may not work without database connection');
+    return false;
+  }
 }
 
-export default prisma;
+/**
+ * Get Prisma client instance
+ * @throws Error if database is not initialized
+ */
+function getPrismaClient() {
+  if (!prisma) {
+    throw new Error('Prisma client not initialized. Call initializeDatabase() first.');
+  }
+  return prisma;
+}
+
+// Initialize on module load (non-blocking)
+if (process.env.NODE_ENV !== 'test') {
+  initializeDatabase().catch((err) => {
+    console.error('Failed to initialize database:', err);
+  });
+}
+
+// Create client instance
+try {
+  prisma = createPrismaClient();
+} catch (error) {
+  console.warn('⚠️  Failed to create Prisma Client:', error);
+}
+
+export default prisma as ReturnType<typeof createPrismaClient>;

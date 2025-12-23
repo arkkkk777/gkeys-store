@@ -8,6 +8,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
 import { sessionMiddleware } from './middleware/session.middleware';
 import { startG2ASyncJob, startStockCheckJob } from './jobs/g2a-sync.job';
+import prisma, { initializeDatabase } from './config/database';
 
 // Load environment variables
 dotenv.config();
@@ -27,9 +28,57 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(sessionMiddleware);
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check with G2A and idempotency store checks
+app.get('/health', async (req, res) => {
+  const health = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    checks: {
+      database: 'unknown',
+      redis: 'unknown',
+      g2a: 'unknown',
+    },
+  };
+  
+  try {
+    // Check database
+    await prisma.$queryRaw`SELECT 1`;
+    health.checks.database = 'ok';
+  } catch (err) {
+    health.checks.database = 'error';
+    health.status = 'degraded';
+  }
+  
+  try {
+    // Check Redis (idempotency store)
+    const redis = await import('./config/redis');
+    if (redis.default.isOpen) {
+      await redis.default.ping();
+      health.checks.redis = 'ok';
+    } else {
+      health.checks.redis = 'disconnected';
+      health.status = 'degraded';
+    }
+  } catch (err) {
+    health.checks.redis = 'error';
+    health.status = 'degraded';
+  }
+  
+  try {
+    // Check G2A connectivity (try to get config - if it throws, G2A is misconfigured)
+    const { getG2AConfig } = await import('./config/g2a');
+    const config = getG2AConfig();
+    // Try a simple token validation check
+    const { validateG2ACredentials } = await import('./services/g2a.service');
+    validateG2ACredentials();
+    health.checks.g2a = 'ok';
+  } catch (err) {
+    health.checks.g2a = 'error';
+    health.status = 'degraded';
+  }
+  
+  const statusCode = health.status === 'ok' ? 200 : 503;
+  res.status(statusCode).json(health);
 });
 
 // API Routes
@@ -43,6 +92,7 @@ import adminRoutes from './routes/admin.routes';
 import cartRoutes from './routes/cart.routes';
 import wishlistRoutes from './routes/wishlist.routes';
 import faqRoutes from './routes/faq.routes';
+import g2aWebhookRoutes from './routes/g2a-webhook.routes';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/games', gameRoutes);
@@ -54,21 +104,36 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/faq', faqRoutes);
+app.use('/api/g2a', g2aWebhookRoutes);
 
 // Error handling
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  
-  // Start scheduled jobs
-  if (process.env.NODE_ENV !== 'test') {
-    startG2ASyncJob();
-    startStockCheckJob();
-    console.log('⏰ Scheduled jobs started');
+// Initialize database and start server
+async function startServer() {
+  // Check database connection
+  const dbConnected = await initializeDatabase();
+  if (!dbConnected) {
+    console.warn('⚠️  Starting server without database connection. Some features will not work.');
   }
+  
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+    
+    // Start scheduled jobs only if database is connected
+    if (process.env.NODE_ENV !== 'test' && dbConnected) {
+      startG2ASyncJob();
+      startStockCheckJob();
+      console.log('⏰ Scheduled jobs started');
+    }
+  });
+}
+
+startServer().catch((error) => {
+  console.error('❌ Failed to start server:', error);
+  process.exit(1);
 });
 
 export default app;

@@ -8,6 +8,7 @@ import { useCart } from '../hooks/useCart';
 import { gamesApi } from '../services/gamesApi';
 import { Container } from '@/components/ui/container';
 import { ProfileSidebar } from '@/components/profile/ProfileSidebar';
+import GameCard from '../components/GameCard';
 import { typography } from '../styles/design-tokens';
 
 const theme = {
@@ -51,14 +52,28 @@ const responsiveCSS = `
     .sidebar-nav { display: flex !important; flex-direction: row !important; overflow-x: auto !important; gap: 8px !important; }
     .sidebar-item { white-space: nowrap !important; padding: 10px 16px !important; }
     .user-stats { display: none !important; }
-    .wishlist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; width: 100% !important; }
-    .wishlist-grid > * { min-width: 0 !important; }
-    .random-games-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; width: 100% !important; }
-    .random-games-grid > * { min-width: 0 !important; }
+    .wishlist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
+    .wishlist-grid > * { min-width: 0 !important; width: 100% !important; }
+    .random-games-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
+    .random-games-grid > * { min-width: 0 !important; width: 100% !important; }
   }
   @media (max-width: 480px) {
     .wishlist-grid { grid-template-columns: 1fr !important; }
     .random-games-grid { grid-template-columns: 1fr !important; }
+  }
+  .wishlist-grid {
+    display: grid;
+    width: 100%;
+  }
+  .random-games-grid {
+    display: grid;
+    width: 100%;
+    justify-items: center;
+  }
+  .random-games-grid > div {
+    display: flex;
+    justify-content: center;
+    width: 100%;
   }
 `;
 
@@ -70,6 +85,9 @@ export default function WishlistPage() {
   const [randomGames, setRandomGames] = useState([]);
   const [loadingRandom, setLoadingRandom] = useState(true);
   const [notification, setNotification] = useState(null);
+  const [skeletonKeys] = useState(() => 
+    Array.from({ length: 8 }, () => `skeleton-${Math.random().toString(36).substring(2, 15)}`)
+  );
 
   // Load random games (8 games that change on refresh)
   useEffect(() => {
@@ -77,10 +95,16 @@ export default function WishlistPage() {
       try {
         setLoadingRandom(true);
         const games = await gamesApi.getRandomGames(8);
-        setRandomGames(games);
+        if (games && games.length > 0) {
+          setRandomGames(games);
+        } else {
+          console.warn('No random games returned from API');
+          setRandomGames([]);
+        }
       } catch (error) {
         console.error('Failed to load random games:', error);
         setRandomGames([]);
+        // Error is handled gracefully - empty state will show message
       } finally {
         setLoadingRandom(false);
       }
@@ -264,6 +288,9 @@ export default function WishlistPage() {
       overflow: 'hidden',
       position: 'relative',
       transition: 'transform 0.2s ease',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
     },
     gameImage: {
       width: '100%',
@@ -436,6 +463,9 @@ export default function WishlistPage() {
       transition: 'transform 0.2s ease',
       textDecoration: 'none',
       color: 'inherit',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
     },
     randomImage: {
       width: '100%',
@@ -548,7 +578,7 @@ export default function WishlistPage() {
                       : null;
 
                     return (
-                      <div key={game.id} style={styles.gameCard}>
+                      <div key={game.id} className="w-full" style={styles.gameCard}>
                         <Link to={`/game/${game.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                           <div style={{ position: 'relative', width: '100%', aspectRatio: '3/4', overflow: 'hidden' }}>
                             <img 
@@ -676,37 +706,38 @@ export default function WishlistPage() {
                 </div>
 
                 {/* Random Games Section - 8 random games */}
-                {randomGames.length > 0 && (
-                  <section className="mt-12 pt-12 border-t border-design-border">
-                    <h2 className="text-2xl font-bold text-design-text mb-6">You might also like</h2>
+                <section className="mt-12 pt-12 border-t border-design-border">
+                  <h2 className="text-2xl font-bold text-design-text mb-6">You might also like</h2>
+                  {loadingRandom ? (
                     <div className="grid grid-cols-1 design-tablet:grid-cols-2 design-desktop:grid-cols-4 gap-6 random-games-grid">
-                      {randomGames.map((game) => (
-                        <Link
-                          key={game.id}
-                          to={`/game/${game.slug}`}
-                          style={styles.randomCard}
+                      {skeletonKeys.map((key) => (
+                        <div
+                          key={key}
+                          className="w-full bg-design-surface rounded-design-lg overflow-hidden animate-pulse"
+                          style={{ aspectRatio: '3/4', maxWidth: '240px', margin: '0 auto' }}
                         >
-                          <img
-                            src={game.image || game.images?.[0]}
-                            alt={game.title}
-                            style={styles.randomImage}
-                          />
-                          <div style={styles.randomInfo}>
-                            <h3 style={styles.randomGameTitle}>{game.title}</h3>
-                            <div style={styles.randomPriceRow}>
-                              <span style={styles.randomPrice}>€{game.price?.toFixed(2) || '0.00'}</span>
-                              {game.originalPrice && game.originalPrice > game.price && (
-                                <span style={styles.randomOriginalPrice}>
-                                  €{game.originalPrice.toFixed(2)}
-                                </span>
-                              )}
-                            </div>
+                          <div className="w-full h-full bg-design-surfaceLight" />
+                          <div className="p-3">
+                            <div className="h-4 bg-design-surfaceLight rounded mb-2" />
+                            <div className="h-3 bg-design-surfaceLight rounded w-2/3" />
                           </div>
-                        </Link>
+                        </div>
                       ))}
                     </div>
-                  </section>
-                )}
+                  ) : randomGames.length > 0 ? (
+                    <div className="grid grid-cols-1 design-tablet:grid-cols-2 design-desktop:grid-cols-4 gap-6 random-games-grid" style={{ width: '100%', justifyItems: 'center' }}>
+                      {randomGames.map((game) => (
+                        <div key={game.id} style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                          <GameCard game={game} size="small" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-design-text-secondary">
+                      <p>Unable to load recommendations at this time.</p>
+                    </div>
+                  )}
+                </section>
               </>
             ) : (
               <>
@@ -725,37 +756,38 @@ export default function WishlistPage() {
                 </div>
 
                 {/* Random Games Section - also shown when wishlist is empty (8 random games) */}
-                {randomGames.length > 0 && (
-                  <section className="mt-12 pt-12 border-t border-design-border">
-                    <h2 className="text-2xl font-bold text-design-text mb-6">You might also like</h2>
+                <section className="mt-12 pt-12 border-t border-design-border">
+                  <h2 className="text-2xl font-bold text-design-text mb-6">You might also like</h2>
+                  {loadingRandom ? (
                     <div className="grid grid-cols-1 design-tablet:grid-cols-2 design-desktop:grid-cols-4 gap-6 random-games-grid">
-                      {randomGames.map((game) => (
-                        <Link
-                          key={game.id}
-                          to={`/game/${game.slug}`}
-                          style={styles.randomCard}
+                      {skeletonKeys.map((key) => (
+                        <div
+                          key={`empty-${key}`}
+                          className="w-full bg-design-surface rounded-design-lg overflow-hidden animate-pulse"
+                          style={{ aspectRatio: '3/4', maxWidth: '240px', margin: '0 auto' }}
                         >
-                          <img
-                            src={game.image || game.images?.[0]}
-                            alt={game.title}
-                            style={styles.randomImage}
-                          />
-                          <div style={styles.randomInfo}>
-                            <h3 style={styles.randomGameTitle}>{game.title}</h3>
-                            <div style={styles.randomPriceRow}>
-                              <span style={styles.randomPrice}>€{game.price?.toFixed(2) || '0.00'}</span>
-                              {game.originalPrice && game.originalPrice > game.price && (
-                                <span style={styles.randomOriginalPrice}>
-                                  €{game.originalPrice.toFixed(2)}
-                                </span>
-                              )}
-                            </div>
+                          <div className="w-full h-full bg-design-surfaceLight" />
+                          <div className="p-3">
+                            <div className="h-4 bg-design-surfaceLight rounded mb-2" />
+                            <div className="h-3 bg-design-surfaceLight rounded w-2/3" />
                           </div>
-                        </Link>
+                        </div>
                       ))}
                     </div>
-                  </section>
-                )}
+                  ) : randomGames.length > 0 ? (
+                    <div className="grid grid-cols-1 design-tablet:grid-cols-2 design-desktop:grid-cols-4 gap-6 random-games-grid" style={{ width: '100%', justifyItems: 'center' }}>
+                      {randomGames.map((game) => (
+                        <div key={game.id} style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                          <GameCard game={game} size="small" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-design-text-secondary">
+                      <p>Unable to load recommendations at this time.</p>
+                    </div>
+                  )}
+                </section>
               </>
             )}
             </div>

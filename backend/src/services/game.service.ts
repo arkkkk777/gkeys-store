@@ -346,7 +346,7 @@ export const getBestSellers = async (genre?: string): Promise<GameResponse[]> =>
 
   const games = await prisma.game.findMany({
     where,
-    take: 8,
+    take: 100, // Get more to randomize
     orderBy: {
       userRating: 'desc',
     },
@@ -374,9 +374,9 @@ export const getBestSellers = async (genre?: string): Promise<GameResponse[]> =>
     },
   });
 
-  // Shuffle and take 8 random
+  // Shuffle and take 30 random
   const shuffled = games.sort(() => 0.5 - Math.random());
-  const result = shuffled.slice(0, 8).map(transformGame);
+  const result = shuffled.slice(0, 30).map(transformGame);
 
   // Cache for 7 days
   try {
@@ -409,7 +409,7 @@ export const getNewInCatalog = async (): Promise<GameResponse[]> => {
       releaseDate: { gte: twoWeeksAgo },
       inStock: true,
     },
-    take: 50, // Get more to randomize
+    take: 100, // Get more to randomize
     orderBy: {
       releaseDate: 'desc',
     },
@@ -437,9 +437,9 @@ export const getNewInCatalog = async (): Promise<GameResponse[]> => {
     },
   });
 
-  // Shuffle and take 15 random
+  // Shuffle and take 40 random
   const shuffled = games.sort(() => 0.5 - Math.random());
-  const result = shuffled.slice(0, 15).map(transformGame);
+  const result = shuffled.slice(0, 40).map(transformGame);
 
   // Cache for 24 hours
   try {
@@ -457,7 +457,7 @@ export const getPreorders = async (): Promise<GameResponse[]> => {
       isPreorder: true,
       inStock: true,
     },
-    take: 20,
+    take: 30,
     orderBy: {
       releaseDate: 'asc',
     },
@@ -498,7 +498,7 @@ export const getNewGames = async (): Promise<GameResponse[]> => {
       inStock: true,
       isPreorder: false,
     },
-    take: 10,
+    take: 30,
     orderBy: {
       releaseDate: 'desc',
     },
@@ -541,7 +541,7 @@ export const getGamesByGenre = async (genreSlug: string): Promise<GameResponse[]
       },
       inStock: true,
     },
-    take: 20,
+    take: 40,
     orderBy: {
       userRating: 'desc',
     },
@@ -846,7 +846,7 @@ export const getCollections = async (): Promise<Array<{ id: string; title: strin
         title: genre.name,
         type: 'genre' as const,
         value: genre.slug,
-        games: genreGames.slice(0, 10),
+        games: genreGames.slice(0, 40),
       });
     }
   }
@@ -858,7 +858,7 @@ export const getCollections = async (): Promise<Array<{ id: string; title: strin
         publisher,
         inStock: true,
       },
-      take: 10,
+      take: 40,
       orderBy: {
         userRating: 'desc',
       },
@@ -892,7 +892,7 @@ export const getCollections = async (): Promise<Array<{ id: string; title: strin
         title: publisher,
         type: 'publisher' as const,
         value: publisher,
-        games: publisherGames.map(transformGame).slice(0, 10),
+        games: publisherGames.map(transformGame).slice(0, 40),
       });
     }
   }

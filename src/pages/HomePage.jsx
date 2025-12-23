@@ -6,6 +6,7 @@ import GameSection from '../components/GameSection';
 import GameCard from '../components/GameCard';
 import { gamesApi } from '../services/gamesApi';
 import { homepageSections } from '../config/homepageSections';
+import hitMeWithSmthGoodBg from '../assets/hit-me-with-smth-good-bg.png';
 
 const theme = {
   colors: {
@@ -57,16 +58,16 @@ const RandomPicksSection = ({ games, loading }) => {
     }
   };
 
-  // Background image - gamepad controller pattern
+  // Background image with dark overlay
   const backgroundImageStyle = {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundImage: `url("data:image/svg+xml,%3Csvg width='300' height='300' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='gamepad' x='0' y='0' width='300' height='300' patternUnits='userSpaceOnUse'%3E%3Cg opacity='0.2'%3E%3Ccircle cx='75' cy='75' r='20' fill='%23333'/%3E%3Ccircle cx='225' cy='75' r='20' fill='%23333'/%3E%3Crect x='90' y='150' width='120' height='60' rx='12' fill='%23333'/%3E%3Ccircle cx='120' cy='180' r='12' fill='%23333'/%3E%3Ccircle cx='180' cy='180' r='12' fill='%23333'/%3E%3Crect x='105' y='165' width='30' height='30' rx='4' fill='%23333'/%3E%3Crect x='165' y='165' width='30' height='30' rx='4' fill='%23333'/%3E%3Cpath d='M 90 150 L 90 120 L 120 120 L 120 150 Z' fill='%23333'/%3E%3Cpath d='M 180 120 L 210 120 L 210 150 L 180 150 Z' fill='%23333'/%3E%3C/g%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23gamepad)'/%3E%3C/svg%3E")`,
-    backgroundSize: '300px 300px',
-    opacity: 0.2,
+    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${hitMeWithSmthGoodBg})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
     zIndex: 0,
   };
 
@@ -173,8 +174,8 @@ const RandomPicksSection = ({ games, loading }) => {
                     <div
                       key={game.id}
                       style={{
-                        minWidth: '200px',
-                        maxWidth: '200px',
+                        minWidth: '292px',
+                        maxWidth: '292px',
                         flexShrink: 0,
                         scrollSnapAlign: 'start',
                       }}
@@ -344,9 +345,9 @@ export default function HomePage() {
         }))
       );
 
-      // Fetch random picks separately (10 games as per spec)
+      // Fetch random picks separately (20 games)
       const randomPicksPromise = gamesApi
-        .getRandomGames(10)
+        .getRandomGames(20)
         .then((games) => ({ success: true, games, error: null }))
         .catch((error) => ({
           success: false,

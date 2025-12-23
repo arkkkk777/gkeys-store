@@ -60,13 +60,14 @@ export const sendRegistrationEmail = async (email: string, data: { username: str
 
 export const sendBalanceTopUpEmail = async (
   email: string,
-  data: { amount: number; currency: string; balance: number }
+  data: { amount: number; currency: string; balance: number; paymentMethod?: string }
 ): Promise<void> => {
   const html = await loadTemplate('balance-topup', {
     amount: data.amount.toString(),
     currency: data.currency,
     balance: data.balance.toString(),
-    date: new Date().toLocaleDateString(),
+    date: new Date().toLocaleDateString('en-GB').replace(/\//g, '.'),
+    paymentMethod: data.paymentMethod || 'Trustly',
   });
 
   await transporter.sendMail({
@@ -97,17 +98,32 @@ export const sendGameKeyEmail = async (
 
 export const sendPasswordResetEmail = async (
   email: string,
-  data: { resetToken: string; resetUrl: string }
+  data: { newPassword: string }
 ): Promise<void> => {
   const html = await loadTemplate('password-reset', {
-    resetToken: data.resetToken,
-    resetUrl: data.resetUrl,
+    newPassword: data.newPassword,
   });
 
   await transporter.sendMail({
     from: EMAIL_FROM,
     to: email,
     subject: 'Password Reset Request',
+    html,
+  });
+};
+
+export const sendEmailVerificationEmail = async (
+  email: string,
+  data: { verificationCode: string }
+): Promise<void> => {
+  const html = await loadTemplate('email-verification', {
+    verificationCode: data.verificationCode,
+  });
+
+  await transporter.sendMail({
+    from: EMAIL_FROM,
+    to: email,
+    subject: 'Verify your GKEYS email address',
     html,
   });
 };

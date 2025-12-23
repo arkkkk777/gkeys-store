@@ -508,3 +508,25 @@ export const updateOrderStatusController = async (
     next(error);
   }
 };
+
+export const getG2AMetricsController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { getG2AMetrics, getLatencyStats } = await import('../services/g2a-metrics.service');
+    const metrics = await getG2AMetrics();
+    const latencyStats = await getLatencyStats();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...metrics,
+        latency: latencyStats,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

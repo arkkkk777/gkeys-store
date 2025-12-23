@@ -62,3 +62,27 @@ export interface G2APriceResponse {
   price: number;
   currency: string;
 }
+
+/**
+ * G2A Webhook Event
+ */
+export interface G2AWebhookEvent {
+  event_id: string;
+  order_id: string;
+  type: string;
+  payload: Record<string, unknown>;
+  signature?: string;
+  nonce?: string;
+  timestamp?: number;
+}
+
+/**
+ * Idempotency Record
+ */
+export interface IdempotencyRecord {
+  key: string;
+  status: 'processing' | 'done' | 'failed';
+  attempts: number;
+  last_error: string | null;
+  updated_at: Date;
+}

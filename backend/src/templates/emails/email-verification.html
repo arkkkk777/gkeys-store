@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Balance Top-up Successful</title>
+  <title>Email Verification</title>
   <style>
     body {
       margin: 0;
@@ -41,31 +41,26 @@
       color: #FFFFFF;
       margin-bottom: 16px;
     }
-    .transaction-section {
+    .code-section {
       margin: 24px 0;
     }
-    .transaction-title {
+    .code-title {
+      color: #00C8C2;
       font-size: 14px;
       font-weight: 600;
       margin-bottom: 12px;
+    }
+    .verification-code {
+      font-size: 20px;
+      font-weight: 600;
       color: #FFFFFF;
-    }
-    .transaction-details {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    .transaction-details li {
-      font-size: 14px;
-      line-height: 1.8;
-      color: #FFFFFF;
-      margin-bottom: 4px;
-    }
-    .action-text {
-      color: #00C8C2;
-      font-size: 14px;
-      line-height: 1.6;
-      margin: 24px 0;
+      letter-spacing: 2px;
+      font-family: 'Courier New', monospace;
+      background-color: #2A2A2A;
+      padding: 12px 16px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-top: 8px;
     }
     .closing {
       margin-top: 32px;
@@ -96,32 +91,32 @@
       <div class="greeting">Hey there!</div>
       
       <div class="body-text">
-        Good news - your Gkeys account balance has been successfully replenished!
-      </div>
-      
-      <div class="body-text">
-        Your new funds are now available, and you can use them right away to grab your favorite games, DLCs, or pre-orders.
+        Welcome to Gkeys - before you start exploring great deals and new games, we just need to verify your email address.
       </div>
 
-      <div class="transaction-section">
-        <div class="transaction-title">Transaction details:</div>
-        <ul class="transaction-details">
-          <li>Amount: {{amount}} {{currency}}</li>
-          <li>Date: {{date}}</li>
-          <li>Payment method: {{paymentMethod}}</li>
-        </ul>
-      </div>
-
-      <div class="action-text">
-        You can check your updated balance anytime in your Profile → Balance section.
+      <div class="code-section">
+        <div class="code-title">Here's your verification code:</div>
+        <div class="verification-code">{{verificationCode}}</div>
       </div>
 
       <div class="body-text">
-        Thanks for staying with Gkeys - every refill brings you closer to your next adventure!
+        Please enter this code on the verification page to confirm your account.
+      </div>
+
+      <div class="body-text">
+        This helps us keep your account secure and ensures you receive all important updates and offers.
+      </div>
+
+      <div class="body-text">
+        If you didn't create an account with Gkeys, just ignore this message.
+      </div>
+
+      <div class="body-text">
+        Thanks for joining us - your next gaming adventure is just a click away!
       </div>
 
       <div class="closing">
-        Happy gaming,<br>
+        Cheers,<br>
         The Gkeys Team
       </div>
     </div>

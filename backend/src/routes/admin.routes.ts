@@ -23,6 +23,7 @@ import {
   deleteBlogPostController,
   getOrdersController,
   updateOrderStatusController,
+  getG2AMetricsController,
 } from '../controllers/admin.controller';
 import { authenticate, requireAdmin } from '../middleware/auth';
 
@@ -64,6 +65,7 @@ router.put('/orders/:id/status', updateOrderStatusController);
 router.get('/g2a/test-connection', testG2AConnectionController);
 router.get('/g2a/status', getG2AStatusController);
 router.get('/g2a/sync-progress', getG2ASyncProgressController);
+router.get('/g2a/metrics', getG2AMetricsController);
 router.post('/g2a/sync', syncG2AController);
 router.post('/g2a/sync-categories', syncG2ACategoriesController);
 router.post('/g2a/sync-genres', syncG2AGenresController);

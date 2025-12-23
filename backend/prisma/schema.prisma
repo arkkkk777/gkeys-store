@@ -137,27 +137,29 @@ model GameKey {
 }
 
 model Order {
-  id            String        @id @default(uuid())
-  userId        String
-  status        OrderStatus  @default(PENDING)
-  subtotal      Decimal      @db.Decimal(10, 2)
-  discount      Decimal      @default(0) @db.Decimal(10, 2)
-  total         Decimal      @db.Decimal(10, 2)
-  paymentMethod String?
-  paymentStatus PaymentStatus?
-  promoCode     String?
+  id              String        @id @default(uuid())
+  userId          String
+  status          OrderStatus  @default(PENDING)
+  subtotal        Decimal      @db.Decimal(10, 2)
+  discount        Decimal      @default(0) @db.Decimal(10, 2)
+  total           Decimal      @db.Decimal(10, 2)
+  paymentMethod   String?
+  paymentStatus   PaymentStatus?
+  promoCode       String?
+  externalOrderId String?       @unique // G2A order ID for webhook integration
 
-  createdAt     DateTime      @default(now())
-  completedAt   DateTime?
+  createdAt       DateTime      @default(now())
+  completedAt     DateTime?
 
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items         OrderItem[]
-  keys          GameKey[]
-  transaction   Transaction?
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items           OrderItem[]
+  keys            GameKey[]
+  transaction     Transaction?
 
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+  @@index([externalOrderId])
   @@map("orders")
 }
 

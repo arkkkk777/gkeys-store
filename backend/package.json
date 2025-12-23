@@ -10,8 +10,12 @@
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
+    "db:check": "tsx scripts/check-db.ts",
+    "test:endpoints": "tsx scripts/test-endpoints.ts",
+    "test:g2a": "tsx scripts/test-g2a.ts",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\""
   },

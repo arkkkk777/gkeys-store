@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import GameCard from './GameCard';
 import { colors, spacing, borderRadius, typography } from '../styles/design-tokens';
+import newGamesBg from '../assets/new-games-bg.jpg';
+import noirBg from '../assets/noir-bg.jpg';
 
 const theme = {
   colors: {
@@ -150,10 +152,14 @@ export default function GameSection({
           <div
             style={{
               backgroundColor: colors.surface,
-              borderRadius: borderRadius.xl,
+              borderRadius: title === 'Noir' || description.title === 'Noir' ? '36px' : borderRadius.xl,
               padding: `${spacing.xl} ${spacing.xxl}`,
               position: 'relative',
-              backgroundImage: 'linear-gradient(135deg, rgba(0, 200, 194, 0.05) 0%, rgba(26, 26, 26, 0.8) 50%, rgba(0, 0, 0, 0.1) 100%)',
+              backgroundImage: title === 'New games' || description.title === 'New games' 
+                ? `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${newGamesBg})` 
+                : title === 'Noir' || description.title === 'Noir'
+                ? `url(${noirBg})`
+                : 'linear-gradient(135deg, rgba(0, 200, 194, 0.05) 0%, rgba(26, 26, 26, 0.8) 50%, rgba(0, 0, 0, 0.1) 100%)',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }}
@@ -271,8 +277,8 @@ export default function GameSection({
                     <div
                       key={game.id}
                       style={{
-                        minWidth: '200px',
-                        maxWidth: '200px',
+                        minWidth: '292px',
+                        maxWidth: '292px',
                         flexShrink: 0,
                         scrollSnapAlign: 'start',
                       }}
@@ -488,13 +494,13 @@ export default function GameSection({
                     <div
                       key={game.id}
                       style={{
-                        minWidth: '200px',
-                        maxWidth: '200px',
+                        minWidth: '240px',
+                        maxWidth: '240px',
                         flexShrink: 0,
                         scrollSnapAlign: 'start',
                       }}
                     >
-                      <GameCard game={game} size="medium" />
+                      <GameCard game={game} size="small" />
                     </div>
                   ))}
                 </div>
@@ -540,7 +546,7 @@ export default function GameSection({
               >
                 {filteredGames.map((game) => (
                   <motion.div key={game.id} variants={itemVariants}>
-                    <GameCard game={game} size="medium" />
+                    <GameCard game={game} size="small" />
                   </motion.div>
                 ))}
               </motion.div>

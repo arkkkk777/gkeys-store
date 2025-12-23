@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
 import { ChevronDown } from 'lucide-react';
+import backOfficeBg from '../../assets/back-office-container-bg.jpg';
 
 const theme = {
   colors: {
@@ -43,7 +44,7 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [backgroundImage] = useState('/images/profile-bg.jpg');
+  const [backgroundImage] = useState(backOfficeBg);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -119,7 +120,7 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(to bottom, rgba(13,13,13,0.6) 0%, rgba(13,13,13,0.85) 60%, rgba(13,13,13,1) 100%)',
+            background: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7))',
           }}
         />
       </div>

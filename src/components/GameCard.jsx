@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { colors } from '../styles/design-tokens';
-import bestSellerBadge from '../assets/best-seller-badge.svg';
-import newBadge from '../assets/new-badge.svg';
-import preorderBadge from '../assets/preorder-badge.svg';
+import bestSellerBadge from '../assets/best-sellers-full-badge.png';
+import newBadge from '../assets/new-games-full-badge.png';
+import preorderBadge from '../assets/preorder-full-badge.png';
 import wishlistIcon from '../assets/wishlist.svg';
 import cartIcon from '../assets/cart.svg';
 
@@ -47,12 +47,12 @@ export default function GameCard({ game, size = 'medium', showNewBadge = false }
 
   const sizeStyles = {
     small: {
-      width: '100%',
-      aspectRatio: '1/1',
+      width: '240px',
+      height: '240px',
     },
     medium: {
-      width: '100%',
-      aspectRatio: '1/1',
+      width: '292px',
+      height: '292px',
     },
     large: {
       width: '100%',
@@ -72,6 +72,12 @@ export default function GameCard({ game, size = 'medium', showNewBadge = false }
     console.log('Add to cart:', game.title);
   };
 
+  const borderRadiusMap = {
+    small: '24px',
+    medium: '36px',
+    large: '12px',
+  };
+
   return (
     <Link to={`/game/${game.slug}`} style={{ textDecoration: 'none' }}>
       <motion.div
@@ -81,7 +87,7 @@ export default function GameCard({ game, size = 'medium', showNewBadge = false }
         transition={{ duration: 0.2 }}
         style={{
           position: 'relative',
-          borderRadius: '12px',
+          borderRadius: borderRadiusMap[size] || '12px',
           overflow: 'hidden',
           backgroundColor: theme.colors.surface,
           cursor: 'pointer',

@@ -62,10 +62,11 @@ const GameCard = ({ game, onWishlist, isWishlisted }) => {
   return (
       <div 
       className="relative rounded-design-lg overflow-hidden border border-design-border bg-design-surface shadow-card cursor-pointer transition-transform hover:-translate-y-1 min-w-0"
+      style={{ width: '100%', maxWidth: '292px', aspectRatio: '1 / 1', height: 'auto' }}
       onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; }}
       onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; }}
     >
-      <div className="relative w-full aspect-[3/4] overflow-hidden">
+      <div className="relative w-full h-full aspect-square overflow-hidden">
         <img src={game.image} alt={game.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
         
         {/* Dark gradient for bottom overlay */}
@@ -239,27 +240,31 @@ export default function CatalogPage() {
   }, [searchParams]);
 
   const responsiveCSS = `
-    .catalog-layout { display: grid; grid-template-columns: 260px 1fr; gap: 32px; }
-    .filter-sidebar-desktop { position: sticky; top: 100px; height: fit-content; }
+    .catalog-layout { display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start; }
+    .filter-sidebar-desktop { position: sticky; top: 96px; height: fit-content; }
     .filter-sidebar-mobile { display: none; }
-    .games-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; width: 100%; }
+    .games-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; justify-items: center; }
     .games-grid > * { min-width: 0; }
     .mobile-filter-btn { display: none; }
     @media (max-width: 1024px) {
-      .games-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .catalog-layout { grid-template-columns: 220px 1fr; gap: 20px; }
+      .games-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     }
     @media (max-width: 768px) {
       .catalog-layout { grid-template-columns: 1fr; padding: 0 12px; }
       .filter-sidebar-desktop { display: none; }
       .filter-sidebar-mobile.mobile-open { display: block; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: ${theme.colors.background}; z-index: 1000; padding: 20px; overflow-y: auto; }
-      .games-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .games-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; justify-items: stretch; }
       .mobile-filter-btn { display: flex; }
       .desktop-nav { display: none; }
       .desktop-search, .desktop-login { display: none; }
     }
-    @media (max-width: 480px) {
+    @media (max-width: 540px) {
       .catalog-layout { padding: 0 12px; }
-      .games-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .games-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; justify-items: stretch; }
+    }
+    @media (max-width: 420px) {
+      .games-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 8px; justify-items: stretch; }
     }
   `;
 
@@ -427,16 +432,16 @@ export default function CatalogPage() {
 
           {/* Collections Carousel */}
           {collections.length > 0 && (
-            <div style={{ marginBottom: '48px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '24px' }}>Collections</h2>
-              <div style={{ display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '10px' }}>
+            <div style={{ marginBottom: '32px' }}>
+              <h2 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '16px' }}>Collections</h2>
+              <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px' }}>
                 {collections.map((collection) => (
-                  <div key={collection.id} style={{ minWidth: '280px', background: theme.colors.surface, borderRadius: '12px', padding: '16px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>{collection.title}</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '12px' }}>
+                  <div key={collection.id} style={{ minWidth: '240px', maxWidth: '260px', background: theme.colors.surface, borderRadius: '12px', padding: '12px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '10px' }}>{collection.title}</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '10px' }}>
                       {collection.games.slice(0, 4).map((game) => (
                         <Link key={game.id} to={`/game/${game.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                          <div style={{ position: 'relative', aspectRatio: '3/4', borderRadius: '8px', overflow: 'hidden' }}>
+                          <div style={{ position: 'relative', aspectRatio: '4/5', borderRadius: '8px', overflow: 'hidden' }}>
                             <img 
                               src={game.image} 
                               alt={game.title} 
@@ -455,7 +460,7 @@ export default function CatalogPage() {
                       style={{ 
                         display: 'inline-block', 
                         color: theme.colors.primary, 
-                        fontSize: '14px', 
+                        fontSize: '13px', 
                         fontWeight: '600',
                         textDecoration: 'none',
                       }}
@@ -568,12 +573,15 @@ export default function CatalogPage() {
             {/* Games Grid */}
             <div className="games-grid" style={{ width: '100%' }}>
               {loading ? (
-                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', justifyItems: 'center' }}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
                     <div
                       key={i}
                       style={{
-                        aspectRatio: '3/4',
+                        width: '100%',
+                        maxWidth: '292px',
+                        aspectRatio: '1 / 1',
+                        height: 'auto',
                         backgroundColor: theme.colors.surface,
                         borderRadius: '12px',
                         border: `1px solid ${theme.colors.border}`,

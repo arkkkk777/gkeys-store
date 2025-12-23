@@ -5,6 +5,12 @@ import { RegisterRequest, LoginRequest, AuthResponse } from '../types/auth';
 import { AppError } from '../middleware/errorHandler';
 
 export const register = async (data: RegisterRequest): Promise<AuthResponse> => {
+  if (!prisma) {
+    const error: AppError = new Error('Database not available');
+    error.statusCode = 503;
+    throw error;
+  }
+
   const { email, password, nickname, firstName, lastName } = data;
 
   // Check if user already exists
@@ -69,6 +75,12 @@ export const register = async (data: RegisterRequest): Promise<AuthResponse> => 
 };
 
 export const login = async (data: LoginRequest): Promise<AuthResponse> => {
+  if (!prisma) {
+    const error: AppError = new Error('Database not available');
+    error.statusCode = 503;
+    throw error;
+  }
+
   const { email, password } = data;
 
   // Find user
