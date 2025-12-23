@@ -485,7 +485,7 @@ const createG2AClient = (): AxiosInstance => {
       });
 
       // Record metrics (async, don't await)
-      import('./g2a-metrics.service').then(m => {
+      import('./g2a-metrics.service.js').then(m => {
         m.incrementMetric('requests_success');
         if (latency > 0) m.recordLatency(latency);
       }).catch(() => {});

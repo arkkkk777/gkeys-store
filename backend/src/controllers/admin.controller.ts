@@ -203,7 +203,7 @@ export const syncG2ACategoriesController = async (
   next: NextFunction
 ) => {
   try {
-    const { syncG2ACategories } = await import('../services/g2a.service');
+    const { syncG2ACategories } = await import('../services/g2a.service.js');
     const result = await syncG2ACategories();
 
     res.status(200).json({
@@ -255,7 +255,7 @@ export const syncG2APlatformsController = async (
   next: NextFunction
 ) => {
   try {
-    const { syncG2APlatforms } = await import('../services/g2a.service');
+    const { syncG2APlatforms } = await import('../services/g2a.service.js');
     const result = await syncG2APlatforms();
 
     res.status(200).json({
@@ -299,7 +299,7 @@ export const testG2AConnectionController = async (
   next: NextFunction
 ) => {
   try {
-    const { testConnection } = await import('../services/g2a.service');
+    const { testConnection } = await import('../services/g2a.service.js');
     const result = await testConnection();
 
     if (result.success) {
