@@ -112,7 +112,7 @@ const retryWithBackoff = async <T>(
         logger.warn(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`, { error: lastError.message });
         
         // Record retry metric (async, don't await)
-        import('./g2a-metrics.service').then(m => m.incrementMetric('requests_retry')).catch(() => {});
+        import('./g2a-metrics.service.js').then(m => m.incrementMetric('requests_retry')).catch(() => {});
         
         await new Promise(resolve => setTimeout(resolve, delay));
       }

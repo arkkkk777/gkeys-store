@@ -802,7 +802,7 @@ export const updateOrderStatus = async (id: string, status: string) => {
   return {
     id: order.id,
     status: order.status,
-    updatedAt: order.updatedAt.toISOString(),
+    updatedAt: order.createdAt.toISOString(), // Order model doesn't have updatedAt, using createdAt
   };
 };
 

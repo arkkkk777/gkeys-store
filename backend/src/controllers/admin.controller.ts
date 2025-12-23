@@ -150,7 +150,7 @@ export const syncG2AController = async (
   next: NextFunction
 ) => {
   try {
-    const { syncG2ACatalog } = await import('../services/g2a.service');
+    const { syncG2ACatalog } = await import('../services/g2a.service.js');
     const { fullSync, productIds, categories, includeRelationships } = req.body || {};
     
     const result = await syncG2ACatalog({

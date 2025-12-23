@@ -43,7 +43,7 @@ export const getFAQs = async (filters?: FAQFilters): Promise<FAQItem[]> => {
   }
 
   const faqs = await prisma.fAQ.findMany({
-    where,
+    where: where as Prisma.FAQWhereInput,
     orderBy: [
       { category: 'asc' },
       { order: 'asc' },

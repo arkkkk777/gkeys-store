@@ -142,7 +142,7 @@ export const processG2AWebhook = async (
   headers: Record<string, string>
 ): Promise<{ success: boolean; message: string }> => {
   // Record webhook total metric
-  import('./g2a-metrics.service').then(m => m.incrementMetric('webhook_total')).catch(() => {});
+  import('./g2a-metrics.service.js').then(m => m.incrementMetric('webhook_total')).catch(() => {});
   
   const { event_id, order_id, type, payload, signature, nonce, timestamp } = event;
   

@@ -6,9 +6,7 @@ import { AppError } from '../middleware/errorHandler.js';
 
 export const register = async (data: RegisterRequest): Promise<AuthResponse> => {
   if (!prisma) {
-    const error: AppError = new Error('Database not available');
-    error.statusCode = 503;
-    throw error;
+    throw new AppError('Database not available', 503);
   }
 
   const { email, password, nickname, firstName, lastName } = data;
@@ -126,7 +124,7 @@ export const login = async (data: LoginRequest): Promise<AuthResponse> => {
 export const refreshToken = async (refreshTokenString: string): Promise<{ token: string; refreshToken: string; expiresIn: number }> => {
   try {
     // Verify refresh token
-    const { verifyRefreshToken, generateAccessToken, generateRefreshToken } = await import('../utils/jwt');
+    const { verifyRefreshToken, generateAccessToken, generateRefreshToken } = await import('../utils/jwt.js');
     const decoded = verifyRefreshToken(refreshTokenString);
 
     // Find user to ensure they still exist
