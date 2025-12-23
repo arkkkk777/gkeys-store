@@ -1,6 +1,6 @@
-import prisma from '../config/database';
-import redisClient from '../config/redis';
-import { GameFilters, PaginatedResponse, GameResponse } from '../types/game';
+import prisma from '../config/database.js';
+import redisClient from '../config/redis.js';
+import { GameFilters, PaginatedResponse, GameResponse } from '../types/game.js';
 import { Prisma } from '@prisma/client';
 
 const DEFAULT_PAGE_SIZE = 36;
@@ -833,7 +833,7 @@ export const getCollections = async (): Promise<Array<{ id: string; title: strin
   }, {} as Record<string, number>);
 
   const topPublishers = Object.entries(publisherCounts)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => (b[1] as number) - (a[1] as number))
     .slice(0, 5)
     .map(([name]) => name);
 

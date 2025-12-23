@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { UserDetailsResponse } from '../types/admin';
+import { UserDetailsResponse } from '../types/admin.js';
 
 /**
  * Generate PDF report for user summary

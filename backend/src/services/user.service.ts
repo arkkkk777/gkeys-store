@@ -1,5 +1,5 @@
-import prisma from '../config/database';
-import { hashPassword, comparePassword } from '../utils/bcrypt';
+import prisma from '../config/database.js';
+import { hashPassword, comparePassword } from '../utils/bcrypt.js';
 import {
   UserProfileResponse,
   UpdateProfileRequest,
@@ -8,8 +8,8 @@ import {
   BalanceResponse,
   TransactionResponse,
   WishlistResponse,
-} from '../types/user';
-import { AppError } from '../middleware/errorHandler';
+} from '../types/user.js';
+import { AppError } from '../middleware/errorHandler.js';
 
 export const getUserProfile = async (userId: string): Promise<UserProfileResponse> => {
   const user = await prisma.user.findUnique({

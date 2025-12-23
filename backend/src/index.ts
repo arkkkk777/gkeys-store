@@ -16,10 +16,54 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// CORS configuration for multiple origins
+const getAllowedOrigins = (): string[] => {
+  const origins: string[] = [];
+  
+  // Production frontend URL
+  if (process.env.FRONTEND_URL) {
+    origins.push(process.env.FRONTEND_URL);
+  }
+  
+  // Vercel preview URLs pattern
+  if (process.env.VERCEL) {
+    const vercelUrl = process.env.VERCEL_URL;
+    if (vercelUrl) {
+      origins.push(`https://${vercelUrl}`);
+    }
+  }
+  
+  // Explicit allowed origins
+  if (process.env.ALLOWED_ORIGINS) {
+    origins.push(...process.env.ALLOWED_ORIGINS.split(','));
+  }
+  
+  // Development
+  if (process.env.NODE_ENV !== 'production') {
+    origins.push('http://localhost:5173', 'http://localhost:3000');
+  }
+  
+  return origins;
+};
+
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    const allowedOrigins = getAllowedOrigins();
+    
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Check if origin is allowed
+    if (allowedOrigins.some(allowed => origin === allowed || origin.endsWith('.vercel.app'))) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(morgan('dev'));
@@ -51,7 +95,7 @@ app.get('/health', async (req, res) => {
   
   try {
     // Check Redis (idempotency store)
-    const redis = await import('./config/redis');
+    const redis = await import('./config/redis.js');
     if (redis.default.isOpen) {
       await redis.default.ping();
       health.checks.redis = 'ok';
@@ -66,10 +110,10 @@ app.get('/health', async (req, res) => {
   
   try {
     // Check G2A connectivity (try to get config - if it throws, G2A is misconfigured)
-    const { getG2AConfig } = await import('./config/g2a');
+    const { getG2AConfig } = await import('./config/g2a.js');
     const config = getG2AConfig();
     // Try a simple token validation check
-    const { validateG2ACredentials } = await import('./services/g2a.service');
+    const { validateG2ACredentials } = await import('./services/g2a.service.js');
     validateG2ACredentials();
     health.checks.g2a = 'ok';
   } catch (err) {

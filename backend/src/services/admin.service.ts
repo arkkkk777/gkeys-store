@@ -1,4 +1,4 @@
-import prisma from '../config/database';
+import prisma from '../config/database.js';
 import { 
   AdminDashboardStats, 
   UserSearchFilters, 
@@ -8,8 +8,8 @@ import {
   GameUpdateInput,
   BlogPostCreateInput,
   BlogPostUpdateInput
-} from '../types/admin';
-import { AppError } from '../middleware/errorHandler';
+} from '../types/admin.js';
+import { AppError } from '../middleware/errorHandler.js';
 import { Prisma } from '@prisma/client';
 
 export const getDashboardStats = async (): Promise<AdminDashboardStats> => {
@@ -814,6 +814,6 @@ export const generateFakeDataForUser = async (userId: string, webhookData: Recor
 
 export const exportUserReport = async (userId: string): Promise<Buffer> => {
   const userData = await getUserDetails(userId);
-  const { generateUserSummaryPDF } = await import('./pdf.service');
+  const { generateUserSummaryPDF } = await import('./pdf.service.js');
   return await generateUserSummaryPDF(userData);
 };
