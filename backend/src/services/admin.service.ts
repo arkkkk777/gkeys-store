@@ -1465,7 +1465,16 @@ export const getAllG2AOffersForAdmin = async (
   };
 }> => {
   const { getAllOffersForAdmin } = await import('./g2a-offer.service.js');
-  return getAllOffersForAdmin(filters);
+  // Convert string filters to proper types - cast to any first, then to proper type
+  const typedFilters = {
+    productId: filters.productId,
+    status: filters.status,
+    offerType: filters.offerType,
+    active: filters.active,
+    page: filters.page,
+    perPage: filters.perPage,
+  } as Parameters<typeof getAllOffersForAdmin>[0];
+  return getAllOffersForAdmin(typedFilters);
 };
 
 export const getG2AOfferByIdForAdmin = async (offerId: string): Promise<{
@@ -1523,7 +1532,14 @@ export const getAllG2AReservationsForAdmin = async (
   totalPages: number;
 }> => {
   const { getAllReservationsForAdmin } = await import('./g2a-reservation.service.js');
-  return getAllReservationsForAdmin(filters);
+  // Convert string status to ReservationStatus type - cast to any first, then to proper type
+  const typedFilters = {
+    orderId: filters.orderId,
+    status: filters.status,
+    page: filters.page,
+    pageSize: filters.pageSize,
+  } as Parameters<typeof getAllReservationsForAdmin>[0];
+  return getAllReservationsForAdmin(typedFilters);
 };
 
 export const cancelG2AReservationForAdmin = async (reservationId: string): Promise<void> => {
@@ -1645,16 +1661,20 @@ export const getUserActivityForAdmin = async (
 
   if (filters?.startDate) {
     const startDate = new Date(filters.startDate);
-    where.createdAt = { ...where.createdAt, gte: startDate };
-    orderWhere.createdAt = { ...orderWhere.createdAt, gte: startDate };
-    transactionWhere.createdAt = { ...transactionWhere.createdAt, gte: startDate };
+    where.createdAt = { gte: startDate };
+    orderWhere.createdAt = { gte: startDate };
+    transactionWhere.createdAt = { gte: startDate };
   }
 
   if (filters?.endDate) {
     const endDate = new Date(filters.endDate);
-    where.createdAt = { ...where.createdAt, lte: endDate };
-    orderWhere.createdAt = { ...orderWhere.createdAt, lte: endDate };
-    transactionWhere.createdAt = { ...transactionWhere.createdAt, lte: endDate };
+    const existingWhereDate = where.createdAt as { gte?: Date } | undefined;
+    const existingOrderDate = orderWhere.createdAt as { gte?: Date } | undefined;
+    const existingTransactionDate = transactionWhere.createdAt as { gte?: Date } | undefined;
+    
+    where.createdAt = existingWhereDate ? { ...existingWhereDate, lte: endDate } : { lte: endDate };
+    orderWhere.createdAt = existingOrderDate ? { ...existingOrderDate, lte: endDate } : { lte: endDate };
+    transactionWhere.createdAt = existingTransactionDate ? { ...existingTransactionDate, lte: endDate } : { lte: endDate };
   }
 
   const [loginHistory, orders, transactions] = await Promise.all([

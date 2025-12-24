@@ -316,8 +316,8 @@ export const updateUserBalance = async (
     await tx.transaction.create({
       data: {
         userId,
-        type: amount > 0 ? 'DEPOSIT' : 'WITHDRAWAL',
-        amount,
+        type: amount > 0 ? 'TOP_UP' : 'PURCHASE',
+        amount: Math.abs(amount),
         currency: 'EUR',
         status: 'COMPLETED',
         description: reason || `Admin balance adjustment: ${amount > 0 ? '+' : ''}${amount} EUR`,
