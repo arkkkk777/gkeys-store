@@ -62,26 +62,15 @@ G2AProduct
 
 ### 3. Get Product Prices
 
-**Endpoint**: `POST /products/prices`
+**Note**: There is no batch price endpoint `POST /products/prices` (returns 404). Use individual `GET /products/{id}` requests for each product to get prices.
 
-**Request Body**:
-```typescript
-{
-  productIds: string[];
-}
-```
-
-**Response**:
-```typescript
-Array<{
-  productId: string;
-  price: number;
-  currency: string;
-}>
-```
+**Alternative Implementation**:
+- Use `GET /products/{id}` for each product ID
+- Extract price from product response (fields: `minPrice`, `price`, or `retailPrice`)
+- Process requests sequentially with rate limiting delays
 
 **Error Responses**:
-- `400 Bad Request`: Invalid product IDs
+- `404 Not Found`: Product not found
 - `401 Unauthorized`: Invalid credentials
 
 ### 4. Create Order (Purchase Keys)
@@ -120,17 +109,19 @@ Array<{
 
 ### 5. Check Product Stock
 
-**Endpoint**: `GET /products/:productId/stock`
+**Note**: There is no separate stock endpoint `GET /products/{id}/stock` (returns 404). Stock information is included in the main product endpoint response.
 
-**Path Parameters**:
-- `productId` (string): G2A product ID
+**Implementation**:
+- Use `GET /products/{id}` to get product information
+- Extract stock from product response (fields: `qty`, `stock`, `quantity`, or `available`)
+- Stock is included in the same response as price and other product details
 
-**Response**:
+**Response** (from `GET /products/{id}`):
 ```typescript
 {
-  productId: string;
-  stock: number;
-  available: boolean;
+  id: string;
+  stock: number; // or qty, quantity, available
+  // ... other product fields
 }
 ```
 

@@ -21,7 +21,7 @@ As an operator/next team, I need docs, quickstart, and health/metrics so I can m
 ## Requirements
 
 ### Functional Requirements
-- **FR-001**: Obtain and cache G2A auth/token with refresh before expiry; fail fast on invalid credentials.
+- **FR-001**: Authenticate to G2A API using hash-based authentication (G2A_API_HASH + G2A_API_KEY + timestamp); validate credentials on startup and fail fast on invalid credentials.
 - **FR-002**: Provide client ops: product list/query, price check, stock check, order creation; map to internal models with validation.
 - **FR-003**: Validate base URL includes `/integration-api/v1` (auto-append if missing) and reject malformed URLs.
 - **FR-004**: Apply HTTP timeouts (5–10s) and bounded retries with jitter/backoff for transient errors (429/5xx), no retry on 4xx.
@@ -41,14 +41,14 @@ As an operator/next team, I need docs, quickstart, and health/metrics so I can m
 - **NFR-006 (Compliance/Access)**: Production keys guarded; rotation documented; least-privilege principle.
 
 ### Entities
-- **G2AAuthToken**: access token, expires_in, issued_at.
+- **G2AAuthCredentials**: apiHash, apiKey, baseUrl, env (sandbox|live) - stored in environment variables, not cached tokens.
 - **G2AProduct**: id, title, price, stock, region, platform, etc.
 - **G2AOrder**: id, items, amount/currency, status, created_at, signature fields.
 - **WebhookEvent**: event_id, order_id, type, payload, signature, nonce, timestamp, processed_at.
 - **IdempotencyRecord**: key, status, attempts, last_error, updated_at.
 
 ### Edge Cases
-- Expired/invalid token; token endpoint 401/429/5xx.
+- Invalid/missing G2A credentials (G2A_API_HASH or G2A_API_KEY); authentication 401/429/5xx.
 - Base URL misconfigured (missing `/integration-api/v1`).
 - Price/stock mismatch vs local expectation.
 - Order create returns partial/validation errors.
@@ -59,10 +59,10 @@ As an operator/next team, I need docs, quickstart, and health/metrics so I can m
 
 ## Success Criteria
 - SC-001: 100% G2A calls use validated base URL with `/integration-api/v1`.
-- SC-002: Auth token refresh occurs before expiry; no 401s in steady state.
+- SC-002: Hash-based authentication works correctly; no 401s in steady state (hash generated with correct timestamp).
 - SC-003: Webhook signature/timestamp validation blocks invalid/stale requests (0 false accepts in tests).
 - SC-004: Idempotent processing proven by duplicate webhook test (no double updates).
-- SC-005: Sandbox smoke test passes end-to-end (token → product/price → order → webhook simulation).
+- SC-005: Sandbox smoke test passes end-to-end (auth → product/price → order → webhook simulation).
 - SC-006: Logs/metrics present for all client calls and webhooks; secrets masked.
 - SC-007: Env separation verified; non-prod defaults to sandbox.
 
@@ -73,7 +73,7 @@ As an operator/next team, I need docs, quickstart, and health/metrics so I can m
 - PDF doc is the canonical contract reference.
 
 ## Dependencies
-- Env vars: `G2A_API_URL`, `G2A_API_KEY`, `G2A_SECRET`, `G2A_ENV` (sandbox|live), `G2A_TIMEOUT_MS` (optional), `G2A_RETRY_MAX` (optional).
+- Env vars: `G2A_API_URL`, `G2A_API_KEY`, `G2A_API_HASH` (or `G2A_API_SECRET` for backward compatibility), `G2A_ENV` (sandbox|live), `G2A_TIMEOUT_MS` (optional), `G2A_RETRY_MAX` (optional).
 - G2A Integration API (HTTPS).
 - Logger/metrics stack (e.g., pino + prom + tracing).
 - Database/Redis for idempotency.

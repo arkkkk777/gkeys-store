@@ -23,8 +23,51 @@ class ApiClient {
       }
       console.warn('⚠️ Using development fallback: http://localhost:3001/api');
     }
-    this.baseURL = baseURL || 'http://localhost:3001/api';
+    this.baseURL = this.normalizeBaseURL(baseURL || 'http://localhost:3001/api');
     this.loadToken();
+  }
+
+  /**
+   * Normalize base URL by ensuring it has a protocol and is valid
+   * Automatically adds https:// if protocol is missing (except for localhost)
+   */
+  private normalizeBaseURL(baseURL: string): string {
+    let normalized = baseURL.trim();
+    
+    // Remove trailing slashes
+    normalized = normalized.replace(/\/+$/, '');
+    
+    // Check if protocol is missing
+    if (!normalized.match(/^https?:\/\//)) {
+      const original = normalized;
+      // For localhost, use http, otherwise https
+      if (normalized.includes('localhost') || normalized.includes('127.0.0.1')) {
+        normalized = `http://${normalized}`;
+      } else {
+        normalized = `https://${normalized}`;
+      }
+      
+      // Log warning in development if URL was modified
+      if (import.meta.env.DEV) {
+        console.warn(
+          `⚠️ VITE_API_BASE_URL missing protocol. Auto-corrected:\n` +
+          `  Original: "${original}"\n` +
+          `  Corrected: "${normalized}"\n` +
+          `  Please update VITE_API_BASE_URL to include protocol (https://)`
+        );
+      }
+    }
+    
+    // Validate URL
+    try {
+      new URL(normalized);
+      return normalized;
+    } catch (error) {
+      const errorMsg = `Invalid VITE_API_BASE_URL format: "${baseURL}". ` +
+        `Expected format: "https://your-domain.com/api" or "http://localhost:3001/api"`;
+      console.error('❌', errorMsg);
+      throw new Error(errorMsg);
+    }
   }
 
   private loadToken() {

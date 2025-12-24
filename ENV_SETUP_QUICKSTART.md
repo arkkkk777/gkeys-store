@@ -14,22 +14,32 @@
 
 **Описание**: Базовый URL API для всех запросов из frontend.
 
-**Формат**: `https://your-project.vercel.app/api`
+**Формат**: `https://your-project.vercel.app/api` (обязательно с протоколом!)
 
 **Важно**:
+- URL **обязательно** должен начинаться с `https://` (или `http://` для localhost)
 - URL должен заканчиваться на `/api`
 - Используйте реальный Vercel URL вашего проекта
 - После первого деплоя обновите на production URL
 
-**Пример для production**:
+**Примеры для production** (✅ правильно):
 ```
+VITE_API_BASE_URL=https://gkeys2.vercel.app/api
 VITE_API_BASE_URL=https://gkeys2-bj0bay6p4-deffgods-projects.vercel.app/api
 ```
 
-**Пример для development**:
+**Пример для development** (✅ правильно):
 ```
 VITE_API_BASE_URL=http://localhost:3001/api
 ```
+
+**❌ Неправильные примеры** (вызовут ошибки):
+```
+VITE_API_BASE_URL=gkeys2.vercel.app/api                    # отсутствует https://
+VITE_API_BASE_URL=gkeys2-deffgods-projects.vercel.app/api  # отсутствует https://
+```
+
+**Примечание**: Код автоматически исправляет отсутствие протокола (добавляет `https://`), но лучше установить правильно с самого начала.
 
 ---
 
@@ -103,6 +113,40 @@ JWT_SECRET=K8mN2pQ5rS7tU9vW1xY3zA4bC6dE8fG0hI2jK4lM6nO8pQ0rS2tU4vW6xY8z
 **Пример**:
 ```
 JWT_REFRESH_SECRET=M9nO1pQ3rS5tU7vW9xY1zA3bC5dE7fG9hI1jK3lM5nO7pQ9rS1tU3vW5xY7z
+```
+
+---
+
+#### JWT_EXPIRES_IN (опционально)
+
+**Описание**: Время жизни JWT access токена.
+
+**По умолчанию**: `7d` (7 дней)
+
+**Формат**: Строка в формате времени (`1h`, `24h`, `7d`, `30d` и т.д.)
+
+**Пример**:
+```
+JWT_EXPIRES_IN=24h
+```
+
+**Важно**: 
+- ⚠️ Если в Vercel используется `JWT_EXPIRY`, переименуйте её в `JWT_EXPIRES_IN`
+- См. [ENV_MIGRATION_GUIDE.md](ENV_MIGRATION_GUIDE.md) для инструкций по миграции
+
+---
+
+#### JWT_REFRESH_EXPIRES_IN (опционально)
+
+**Описание**: Время жизни JWT refresh токена.
+
+**По умолчанию**: `30d` (30 дней)
+
+**Формат**: Аналогично `JWT_EXPIRES_IN`
+
+**Пример**:
+```
+JWT_REFRESH_EXPIRES_IN=30d
 ```
 
 ---
@@ -209,6 +253,11 @@ G2A_API_KEY=74026b3dc2c6db6a30a73e71cdb138b1e1b5eb7a97ced46689e2d28db1050875
 G2A_API_HASH=qdaiciDiyMaTjxMt
 ```
 
+**Важно**: 
+- ⚠️ Если в Vercel используется `G2A_API_SECRET`, рекомендуется переименовать её в `G2A_API_HASH`
+- Код поддерживает оба имени для обратной совместимости, но `G2A_API_HASH` предпочтительнее
+- См. [ENV_MIGRATION_GUIDE.md](ENV_MIGRATION_GUIDE.md) для инструкций по миграции
+
 ---
 
 #### G2A_ENV
@@ -228,14 +277,17 @@ G2A_ENV=sandbox
 
 ### Опциональные переменные
 
-#### REDIS_URL
+#### REDIS_URL / REDIS_GKEYS_REDIS_URL
 
-**Описание**: Connection string для Redis (для idempotency и метрик).
+**Описание**: Connection string для Redis (для idempotency, метрик и кеширования).
 
-**Формат**: `redis://password@host:port/database`
+**Приоритет**: Если установлены обе переменные, `REDIS_GKEYS_REDIS_URL` имеет приоритет.
 
-**Пример**:
+**Формат**: `redis://[password@]host:port[/database]`
+
+**Примеры**:
 ```
+REDIS_GKEYS_REDIS_URL=redis://default:password@redis.example.com:16640
 REDIS_URL=redis://mypassword@redis.example.com:6379/0
 ```
 
@@ -256,6 +308,8 @@ DIRECT_URL=postgresql://user:password@db.example.com:5432/gkeys_prod?sslmode=req
 # Backend - JWT
 JWT_SECRET=your-very-strong-secret-key-minimum-32-characters-long-random-string
 JWT_REFRESH_SECRET=different-strong-secret-key-minimum-32-characters-long
+JWT_EXPIRES_IN=24h
+JWT_REFRESH_EXPIRES_IN=30d
 
 # Backend - General
 FRONTEND_URL=https://your-project.vercel.app
@@ -268,6 +322,8 @@ G2A_API_HASH=your-g2a-api-hash
 G2A_ENV=live
 
 # Redis (опционально, но рекомендуется)
+REDIS_GKEYS_REDIS_URL=redis://default:password@redis.example.com:16640
+# или
 REDIS_URL=redis://password@redis.example.com:6379/0
 ```
 
@@ -367,6 +423,7 @@ vercel env ls
 ## 📚 Дополнительные ресурсы
 
 - [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md) - Полный справочник всех переменных
+- [ENV_MIGRATION_GUIDE.md](ENV_MIGRATION_GUIDE.md) - Руководство по миграции переменных (если нужно переименовать)
 - [VERCEL_ENV_SETUP.md](VERCEL_ENV_SETUP.md) - Подробная инструкция настройки в Vercel
 - [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - Полное руководство по деплою
 

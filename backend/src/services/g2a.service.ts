@@ -1905,8 +1905,19 @@ export const validateGameStock = async (g2aProductId: string): Promise<{
     logger.debug(`Checking stock for product`, { g2aProductId });
     const client = createG2AClient();
 
-    const response = await client.get(`/products/${g2aProductId}/stock`);
-    const stock = Number(response.data.stock || 0);
+    // Use main product endpoint - stock information is included in product data
+    // Endpoint /products/{id}/stock doesn't exist (returns 404)
+    const response = await client.get(`/products/${g2aProductId}`);
+    const productData = response.data;
+    
+    // Extract stock from product data (can be qty, stock, quantity, or available)
+    const stock = Number(
+      productData.qty || 
+      productData.stock || 
+      productData.quantity || 
+      productData.available || 
+      0
+    );
     const available = stock > 0;
     
     logger.debug(`Stock check result`, { g2aProductId, available, stock });
@@ -1994,66 +2005,90 @@ export const getG2APrices = async (g2aProductIds: string[]): Promise<Map<string,
   logger.debug(`Fetching prices for ${g2aProductIds.length} products in ${batches.length} batches`);
 
   // Request queue: Process batches sequentially with rate limiting delays
+  // Note: POST /products/prices endpoint doesn't exist (returns 404)
+  // Use individual GET /products/{id} requests instead
   for (let i = 0; i < batches.length; i++) {
     const batch = batches[i];
-    let retries = 0;
-    const MAX_RETRIES = 3;
-    let success = false;
+    let batchSuccessCount = 0;
     
-    while (retries < MAX_RETRIES && !success) {
-      try {
-        const client = createG2AClient();
+    // Fetch each product individually to get price
+    for (const productId of batch) {
+      let retries = 0;
+      const MAX_RETRIES = 3;
+      let success = false;
+      
+      while (retries < MAX_RETRIES && !success) {
+        try {
+          const client = createG2AClient();
 
-        const response = await client.post('/products/prices', {
-          productIds: batch,
-        });
+          // Use main product endpoint - price information is included in product data
+          const response = await client.get(`/products/${productId}`);
 
-        // Check for rate limit response
-        if (response.status === 429) {
-          const retryAfter = response.headers['retry-after'] 
-            ? Number(response.headers['retry-after']) * 1000 
-            : (retries + 1) * 1000; // Exponential backoff
+          // Check for rate limit response
+          if (response.status === 429) {
+            const retryAfter = response.headers['retry-after'] 
+              ? Number(response.headers['retry-after']) * 1000 
+              : (retries + 1) * 1000; // Exponential backoff
+            
+            logger.warn(`Rate limit hit for product ${productId}, waiting ${retryAfter}ms before retry`);
+            await new Promise(resolve => setTimeout(resolve, retryAfter));
+            retries++;
+            continue;
+          }
+
+          // Extract price from product data (can be minPrice, price, or retailPrice)
+          const productData = response.data;
+          const rawPrice = Number(
+            productData.minPrice || 
+            productData.price || 
+            productData.retailPrice || 
+            0
+          );
           
-          logger.warn(`Rate limit hit for batch ${i + 1}, waiting ${retryAfter}ms before retry`);
-          await new Promise(resolve => setTimeout(resolve, retryAfter));
-          retries++;
-          continue;
-        }
+          if (rawPrice > 0) {
+            prices.set(productId, applyMarkup(rawPrice));
+            batchSuccessCount++;
+            success = true;
+          } else {
+            logger.warn(`No price found for product ${productId}`);
+            success = true; // Mark as success to avoid retries, but don't add to prices
+          }
 
-        for (const item of response.data) {
-          prices.set(item.productId, applyMarkup(item.price));
+          // Rate limiting - small delay between individual requests
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          const g2aError = handleG2AError(error, 'getG2APrices');
+          
+          // Handle rate limiting specifically
+          if (g2aError.code === G2AErrorCode.G2A_RATE_LIMIT && retries < MAX_RETRIES) {
+            const delay = (retries + 1) * 1000; // Exponential backoff
+            logger.warn(`Rate limit error for product ${productId}, retrying after ${delay}ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            retries++;
+            continue;
+          }
+          
+          // For 404 or other errors, use fallback price for this product
+          logger.warn(`Error fetching price for product ${productId}, using fallback`, g2aError);
+          prices.set(productId, applyMarkup(Math.random() * 50 + 10)); // Fallback mock price
+          success = true; // Mark as success to avoid infinite retries
         }
-
-        logger.debug(`Fetched prices for batch ${i + 1}/${batches.length}`, { count: batch.length });
-        success = true;
-        
-        // Rate limiting - wait between batches (even on success)
-        if (i < batches.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-      } catch (error) {
-        const g2aError = handleG2AError(error, 'getG2APrices');
-        
-        // Handle rate limiting specifically
-        if (g2aError.code === G2AErrorCode.G2A_RATE_LIMIT && retries < MAX_RETRIES) {
-          const delay = (retries + 1) * 1000; // Exponential backoff
-          logger.warn(`Rate limit error for batch ${i + 1}, retrying after ${delay}ms`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          retries++;
-          continue;
-        }
-        
-        logger.error(`Error fetching prices for batch ${i + 1}, using fallback`, g2aError);
-        // Fallback to mock prices for this batch
-        for (const id of batch) {
-          prices.set(id, applyMarkup(Math.random() * 50 + 10));
-        }
-        success = true; // Mark as "success" to exit retry loop, even though we used fallback
       }
+    }
+
+    logger.debug(`Fetched prices for batch ${i + 1}/${batches.length}`, { 
+      success: batchSuccessCount, 
+      total: batch.length 
+    });
+    
+    // Rate limiting - wait between batches (even on success)
+    if (i < batches.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
   }
 
   logger.debug(`Successfully fetched prices`, { count: prices.size, total: g2aProductIds.length });
+  
   return prices;
 };
 

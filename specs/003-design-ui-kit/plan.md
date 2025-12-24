@@ -1,80 +1,88 @@
-# Implementation Plan: New Games Section Design Update
+# Implementation Plan: [FEATURE]
 
-**Branch**: `003-design-ui-kit` | **Date**: 2025-12-12 | **Spec**: `/specs/003-design-ui-kit/spec.md`
-**Input**: User request: "приведи дизайн раздела New games к виду как указано на скриншоте чтобы было по структуре на 100% похоже"
+**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+
+**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-Update the "New games" section on the homepage to match the design specification from the provided screenshot. The section should have a dark container with rounded corners, large title and subtitle, horizontal carousel with navigation arrows, game cards with "New" badges, and a centered "Check all" button. All visual elements must match the screenshot exactly in structure, spacing, colors, and layout.
+[Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.9.3, React 19.2.0  
-**Primary Dependencies**: Tailwind CSS 3.4.18, Vite 7.2.7, React 19, Framer Motion 12  
-**Storage**: N/A (UI component update)  
-**Testing**: Visual inspection against screenshot, responsive behavior verification  
-**Target Platform**: Web (browser-based React application)  
-**Project Type**: Web application (frontend + backend)  
-**Performance Goals**: No performance degradation, smooth carousel scrolling  
-**Constraints**: Must match screenshot design exactly, maintain responsive behavior, use design tokens  
-**Scale/Scope**: Single section component update, affects GameSection.jsx, GameCard.jsx, homepageSections.ts config
+<!--
+  ACTION REQUIRED: Replace the content in this section with the technical details
+  for the project. The structure here is presented in advisory capacity to guide
+  the iteration process.
+-->
+
+**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
+**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
+**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: [single/web/mobile - determines source structure]  
+**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
+**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
+**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 ### Type Safety First
-- [x] All code will be fully typed with TypeScript (no `any` without justification)
-- [x] Type definitions will be comprehensive and accurate
-- [x] Strict TypeScript configuration will be maintained
+- [ ] All code will be fully typed with TypeScript (no `any` without justification)
+- [ ] Type definitions will be comprehensive and accurate
+- [ ] Strict TypeScript configuration will be maintained
 
 ### Component-Driven Architecture (Frontend features)
-- [x] Components will be modular, reusable, and self-contained
-- [x] Single responsibility principle will be followed
-- [x] Components will be independently testable
-- [x] Composition over inheritance will be preferred
-- [x] Functional components with hooks will be used
+- [ ] Components will be modular, reusable, and self-contained
+- [ ] Single responsibility principle will be followed
+- [ ] Components will be independently testable
+- [ ] Composition over inheritance will be preferred
+- [ ] Functional components with hooks will be used
 
 ### Performance Optimization
-- [x] Code splitting strategy defined for vendor libraries
-- [x] Lazy loading planned for routes and heavy components
-- [x] Image optimization strategy defined
-- [x] Bundle size target: < 1MB gzipped
-- [x] Console/debugger removal in production builds
-- [x] React.memo, useMemo, useCallback usage identified where needed
+- [ ] Code splitting strategy defined for vendor libraries
+- [ ] Lazy loading planned for routes and heavy components
+- [ ] Image optimization strategy defined
+- [ ] Bundle size target: < 1MB gzipped
+- [ ] Console/debugger removal in production builds
+- [ ] React.memo, useMemo, useCallback usage identified where needed
 
 ### User Experience Consistency (Frontend features)
-- [x] Design system consistency maintained (colors, spacing, typography)
-- [x] Interactive elements have hover/focus states defined
-- [x] Animation approach defined (Framer Motion or GSAP)
-- [x] Responsive design: Mobile-first approach
-- [x] Accessibility: ARIA labels, keyboard navigation, semantic HTML
+- [ ] Design system consistency maintained (colors, spacing, typography)
+- [ ] Interactive elements have hover/focus states defined
+- [ ] Animation approach defined (Framer Motion or GSAP)
+- [ ] Responsive design: Mobile-first approach
+- [ ] Accessibility: ARIA labels, keyboard navigation, semantic HTML
 
 ### Code Quality Standards
-- [x] ESLint configuration will be followed
-- [x] Prettier for code formatting
-- [x] Meaningful naming conventions defined
-- [x] Comment strategy for complex logic defined
-- [x] No commented-out code in production
+- [ ] ESLint configuration will be followed
+- [ ] Prettier for code formatting
+- [ ] Meaningful naming conventions defined
+- [ ] Comment strategy for complex logic defined
+- [ ] No commented-out code in production
 
 ### Technology Stack Compliance
-- [x] Frontend: React 19 + TypeScript, Vite 7, Tailwind CSS 3, shadcn/ui, Framer Motion/GSAP
-- [x] Backend: Node.js + Express, PostgreSQL + Prisma, Full TypeScript
-- [x] No unauthorized technology additions
+- [ ] Frontend: React 19 + TypeScript, Vite 7, Tailwind CSS 3, shadcn/ui, Framer Motion/GSAP
+- [ ] Backend: Node.js + Express, PostgreSQL + Prisma, Full TypeScript
+- [ ] No unauthorized technology additions
 
 ### Security Requirements
-- [x] API authentication strategy defined (N/A for UI update)
-- [x] Sensitive data handling plan defined (N/A for UI update)
-- [x] Environment variables usage identified (N/A for UI update)
-- [x] Input validation strategy (client + server) (N/A for UI update)
-- [x] XSS/CSRF protection considered (N/A for UI update)
+- [ ] API authentication strategy defined
+- [ ] Sensitive data handling plan defined
+- [ ] Environment variables usage identified
+- [ ] Input validation strategy (client + server)
+- [ ] XSS/CSRF protection considered
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/003-design-ui-kit/
+specs/[###-feature]/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
@@ -84,26 +92,57 @@ specs/003-design-ui-kit/
 ```
 
 ### Source Code (repository root)
+<!--
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature. Delete unused options and expand the chosen structure with
+  real paths (e.g., apps/admin, packages/something). The delivered plan must
+  not include Option labels.
+-->
 
 ```text
+# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
-├── components/
-│   ├── GameSection.jsx          # Main section component (needs update for container styling)
-│   └── GameCard.jsx             # Game card component (needs "New" badge support)
-├── config/
-│   └── homepageSections.ts      # Section configuration (needs carousel: true for new-games)
-└── pages/
-    └── HomePage.jsx             # Homepage (may need minor adjustments)
+├── models/
+├── services/
+├── cli/
+└── lib/
+
+tests/
+├── contract/
+├── integration/
+└── unit/
+
+# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+backend/
+├── src/
+│   ├── models/
+│   ├── services/
+│   └── api/
+└── tests/
+
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
+
+# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
+
+ios/ or android/
+└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: Web application structure. The update affects:
-1. `GameSection.jsx` - Add dark container with rounded corners, update layout for "New games" section
-2. `GameCard.jsx` - Add "New" badge with pin icon, update price overlay styling
-3. `homepageSections.ts` - Enable carousel for "new-games" section
-4. Design tokens usage - Ensure all colors, spacing, and typography use centralized tokens
+**Structure Decision**: [Document the selected structure and reference the real
+directories captured above]
 
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**
 
-No violations - this is a UI component update that maintains all constitution requirements.
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |

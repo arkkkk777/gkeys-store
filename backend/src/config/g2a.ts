@@ -53,13 +53,20 @@ export const normalizeG2AUrl = (url: string): string => {
 export const getG2AConfig = (): G2AConfig => {
   const rawUrl = process.env.G2A_API_URL || 'https://api.g2a.com/integration-api/v1';
   const apiKey = process.env.G2A_API_KEY || '';
-  const apiHash = process.env.G2A_API_HASH || '';
+  // Support both G2A_API_HASH and G2A_API_SECRET for backward compatibility
+  // G2A_API_HASH is the preferred name, G2A_API_SECRET is deprecated
+  const apiHash = process.env.G2A_API_HASH || process.env.G2A_API_SECRET || '';
   const env = (process.env.G2A_ENV as G2AEnvironment) || 'sandbox';
   const timeoutMs = Number(process.env.G2A_TIMEOUT_MS || 8000);
   const retryMax = Number(process.env.G2A_RETRY_MAX || 2);
 
   if (!apiKey || !apiHash) {
-    throw new AppError('G2A credentials missing: G2A_API_KEY/G2A_API_HASH', 500);
+    throw new AppError('G2A credentials missing: G2A_API_KEY and G2A_API_HASH (or G2A_API_SECRET) are required', 500);
+  }
+
+  // Warn if using deprecated G2A_API_SECRET
+  if (process.env.G2A_API_SECRET && !process.env.G2A_API_HASH) {
+    console.warn('[G2A Config] WARNING: G2A_API_SECRET is deprecated. Please use G2A_API_HASH instead.');
   }
 
   const baseUrl = normalizeG2AUrl(rawUrl);
